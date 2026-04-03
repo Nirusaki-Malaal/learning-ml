@@ -58,6 +58,7 @@ def visualize():
     plt.legend()
     plt.show()
 
+
 train()
 visualize()
 
