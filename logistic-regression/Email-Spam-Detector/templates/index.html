@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SMS Spam Detector - Logistic Regression</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            colors: {
+                "background": "#0f1419",
+                "surface-container-low": "#161c24",
+                "on-background": "#e0e2eb",
+                "surface-container-highest": "#2d3540",
+                "outline": "#849396",
+                "surface-container": "#1a2230",
+                "surface-container-lowest": "#0a0e14",
+                "primary": "#4dabf7",
+                "on-surface-variant": "#b8c4cc",
+                "primary-container": "#339af0",
+                "on-primary": "#001a33",
+                "surface": "#0f1419",
+                "on-surface": "#e8eaef",
+                "outline-variant": "#3b494c",
+                "surface-variant": "#2d3540",
+                "surface-container-high": "#242c38",
+                "accent": "#69db7c",
+                "accent-warm": "#ff6b6b"
+            },
+            fontFamily: {
+                "headline": ["Outfit", "sans-serif"],
+                "body": ["Plus Jakarta Sans", "sans-serif"],
+                "label": ["Inter", "sans-serif"]
+            }
+        },
+    },
+}
+</script>
+<link rel="stylesheet" href="/statics/style.css">
+<style>
+.SMS-gradient {
+    background: linear-gradient(135deg, #4dabf7 0%, #339af0 50%, #228be6 100%);
+}
+.SMS-glow {
+    box-shadow: 0px 8px 40px rgba(77, 171, 247, 0.35);
+}
+.spam-gradient {
+    background: linear-gradient(180deg, #ff6b6b 0%, #fa5252 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.ham-gradient {
+    background: linear-gradient(180deg, #69db7c 0%, #51cf66 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+</style>
+</head>
+<body class="bg-background min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+<!-- Main Canvas -->
+<main class="min-h-screen relative overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 right-0 z-40 flex justify-between items-center px-4 sm:px-6 md:px-10 h-16 sm:h-20 bg-[#0f1419]/85 backdrop-blur-2xl border-b border-white/5">
+<div class="flex items-center gap-3 sm:gap-4">
+<span class="material-symbols-outlined text-2xl text-primary">sms</span>
+<span class="text-lg sm:text-xl font-bold tracking-tight text-primary font-headline">Spam Detector</span>
+</div>
+<nav class="flex items-center gap-4 sm:gap-6">
+<a href="/" class="text-sm font-headline font-bold text-primary flex items-center gap-2 border-b-2 border-primary pb-1">
+<span class="material-symbols-outlined text-lg">shield</span>
+<span class="hidden sm:inline">Detector</span>
+</a>
+<a href="/analytics" class="text-sm font-headline text-on-surface-variant hover:text-primary transition-opacity flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">query_stats</span>
+<span class="hidden sm:inline">Analytics</span>
+</a>
+</nav>
+</header>
+<!-- Content Area -->
+<div class="pt-24 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6 md:px-12 max-w-6xl mx-auto">
+<!-- Hero Title -->
+<div class="mb-8 sm:mb-12">
+<h2 class="text-3xl sm:text-5xl md:text-6xl font-black font-headline tracking-tighter text-on-surface mb-3 sm:mb-4">
+    SMS Spam <span class="text-transparent bg-clip-text SMS-gradient">Detector</span>
+</h2>
+<p class="text-on-surface-variant font-body text-sm sm:text-base md:text-lg max-w-2xl">
+    Detect spam messages using <strong class="text-primary">Custom Logistic Regression</strong> optimized with <strong class="text-primary">Newton's Method</strong>. No scikit-learn involved - built from scratch.
+</p>
+</div>
+<!-- Main Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+<!-- Input Form Container -->
+<div class="lg:col-span-8 glass-panel rounded-xl p-4 sm:p-6 md:p-8 border border-white/5">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+<h3 class="text-lg sm:text-xl font-headline font-bold text-on-surface flex items-center gap-2">
+    <span class="material-symbols-outlined text-primary">edit_note</span>
+    Message Content
+</h3>
+<button class="flex items-center gap-2 text-xs font-label uppercase tracking-widest text-primary-container hover:text-primary transition-colors group" id="loadSampleBtn">
+<span class="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">autorenew</span>
+    Load Sample
+</button>
+</div>
+
+<form id="spamForm" class="space-y-6">
+    <!-- SMS Input -->
+    <div class="space-y-2">
+        <label class="text-xs font-label text-on-surface-variant flex items-center justify-between">
+            <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm text-primary">article</span>
+                Paste Message Content
+            </span>
+            <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Paste the SMS body text to analyze">info</span>
+        </label>
+        <textarea id="sms_text" name="sms_text" rows="8" 
+            class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none resize-none font-body"
+            placeholder="Enter or paste SMS text here to check if it's spam or not..."></textarea>
+    </div>
+
+    <p id="explainMsg" class="text-xs sm:text-sm text-on-surface-variant mt-2"></p>
+
+    <div class="mt-6 sm:mt-8">
+    <button type="submit" id="predictBtn" class="w-full py-4 sm:py-5 rounded-full SMS-gradient text-on-primary font-headline font-black text-lg sm:text-xl tracking-tighter SMS-glow active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+        <span class="material-symbols-outlined text-2xl">search</span>
+        Check for Spam
+    </button>
+    </div>
+</form>
+</div>
+
+<!-- Result Section -->
+<div class="lg:col-span-4 space-y-6">
+<!-- Predicted Value Card -->
+<div class="glass-panel rounded-xl overflow-hidden border border-primary/10">
+<div class="p-6 sm:p-8 text-center relative overflow-hidden">
+    <!-- Animated Background Icon -->
+    <div class="absolute -top-4 -right-4 opacity-10 pointer-events-none" id="bgIconContainer">
+        <span class="material-symbols-outlined text-[120px] text-primary animate-pulse" id="resultIcon">sms</span>
+    </div>
+    <p class="text-xs font-label uppercase tracking-[0.2em] text-on-surface-variant mb-4 relative z-10">Classification Result</p>
+    <div class="text-3xl sm:text-4xl font-black font-headline tracking-tighter mb-2 relative z-10" id="predictionResult">
+        <span class="text-on-surface-variant">Awaiting Input</span>
+    </div>
+    <div class="flex justify-center items-center gap-2 text-primary font-body text-sm mt-4 relative z-10">
+        <span class="material-symbols-outlined text-lg">psychology</span>
+        Logistic Regression
+    </div>
+</div>
+<div class="p-5 bg-surface-container-low/60 border-t border-white/5">
+    <!-- Probability Bars -->
+    <div class="space-y-4">
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-label text-accent-warm flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">warning</span> Spam
+                </span>
+                <span id="spamProbText" class="text-sm font-bold text-accent-warm">--%</span>
+            </div>
+            <div class="w-full h-2 bg-surface-container-lowest rounded-full overflow-hidden">
+                <div id="spamBar" class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+            </div>
+        </div>
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-label text-accent flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">verified</span> Ham (Safe)
+                </span>
+                <span id="hamProbText" class="text-sm font-bold text-accent">--%</span>
+            </div>
+            <div class="w-full h-2 bg-surface-container-lowest rounded-full overflow-hidden">
+                <div id="hamBar" class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Info Card -->
+<div class="glass-panel rounded-xl p-5 border border-accent/20">
+    <div class="flex items-start gap-4">
+        <span class="material-symbols-outlined text-primary text-xl">lightbulb</span>
+        <div>
+            <h4 class="text-sm font-headline font-bold text-on-surface">About the Model</h4>
+            <p class="text-xs text-on-surface-variant font-body leading-relaxed mt-1">
+                Custom Logistic Regression using TF-IDF features and Newton's Method optimization. Trained on ~5,500 labeled SMSs.
+            </p>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="w-full py-8 sm:py-12 mt-auto bg-[#0f1419] border-t border-white/5">
+<div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 opacity-60 px-4 sm:px-6 md:px-10">
+<p class="font-body text-xs tracking-wide text-on-surface-variant text-center sm:text-left">
+    Spam Detection - Custom Logistic Regression & Newton's Method
+</p>
+<div class="flex gap-6">
+<a class="font-body text-xs tracking-wide text-on-surface-variant hover:text-primary transition-colors" href="/analytics">View Analytics</a>
+</div>
+</div>
+</footer>
+</main>
+<script src="/statics/app.js"></script>
+</body>
+</html>

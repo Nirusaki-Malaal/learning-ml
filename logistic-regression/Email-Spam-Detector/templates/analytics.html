@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Analytics | SMS Spam Detector</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            colors: {
+                "background": "#0f1419",
+                "surface-container-low": "#161c24",
+                "on-background": "#e0e2eb",
+                "surface-container-highest": "#2d3540",
+                "outline": "#849396",
+                "surface-container": "#1a2230",
+                "surface-container-lowest": "#0a0e14",
+                "primary": "#4dabf7",
+                "on-surface-variant": "#b8c4cc",
+                "primary-container": "#339af0",
+                "on-primary": "#001a33",
+                "surface": "#0f1419",
+                "on-surface": "#e8eaef",
+                "outline-variant": "#3b494c",
+                "surface-variant": "#2d3540",
+                "surface-container-high": "#242c38",
+                "accent": "#69db7c",
+                "accent-warm": "#ff6b6b"
+            },
+            fontFamily: {
+                "headline": ["Outfit", "sans-serif"],
+                "body": ["Plus Jakarta Sans", "sans-serif"],
+                "label": ["Inter", "sans-serif"]
+            }
+        },
+    },
+}
+</script>
+<link rel="stylesheet" href="/statics/style.css">
+<style>
+    .gradient-text {
+        background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .glow-card {
+        position: relative;
+        overflow: hidden;
+    }
+    .glow-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: conic-gradient(from 0deg, transparent, rgba(77, 171, 247, 0.1), transparent 30%);
+        animation: rotate 4s linear infinite;
+    }
+    @keyframes rotate {
+        100% { transform: rotate(360deg); }
+    }
+    .stat-value {
+        background: linear-gradient(135deg, #e8eaef 0%, #b8c4cc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .word-cloud-word {
+        display: inline-block;
+        padding: 4px 10px;
+        margin: 4px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        cursor: default;
+    }
+    .word-cloud-word:hover {
+        transform: scale(1.15);
+        z-index: 10;
+    }
+    .confusion-cell {
+        transition: all 0.3s ease;
+    }
+    .confusion-cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(77, 171, 247, 0.3);
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-in {
+        animation: slideIn 0.5s ease forwards;
+    }
+    @keyframes countUp {
+        from { opacity: 0; transform: scale(0.5); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .count-up {
+        animation: countUp 0.8s ease-out forwards;
+    }
+    .feature-bar {
+        transition: width 1s ease-out;
+    }
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 5px rgba(77, 171, 247, 0.5); }
+        50% { box-shadow: 0 0 20px rgba(77, 171, 247, 0.8); }
+    }
+    .pulse-glow {
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+    .sigmoid-path {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: draw 2s ease forwards;
+    }
+    @keyframes draw {
+        to { stroke-dashoffset: 0; }
+    }
+</style>
+</head>
+<body class="bg-background min-h-screen">
+<main class="min-h-screen relative overflow-x-hidden">
+<!-- Header -->
+<header class="fixed top-0 left-0 right-0 z-40 flex justify-between items-center px-4 sm:px-6 md:px-10 h-14 sm:h-16 md:h-20 bg-[#0f1419]/90 backdrop-blur-2xl border-b border-white/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-primary">sms</span>
+<span class="text-base sm:text-lg md:text-xl font-bold tracking-tight text-primary font-headline">Spam Detector</span>
+</div>
+<nav class="flex items-center gap-3 sm:gap-4 md:gap-6">
+<a href="/" class="text-xs sm:text-sm font-headline text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 sm:gap-2">
+<span class="material-symbols-outlined text-base sm:text-lg">shield</span>
+<span class="hidden sm:inline">Detector</span>
+</a>
+<a href="/analytics" class="text-xs sm:text-sm font-headline font-bold text-primary flex items-center gap-1 sm:gap-2 border-b-2 border-primary pb-1">
+<span class="material-symbols-outlined text-base sm:text-lg">query_stats</span>
+<span class="hidden sm:inline">Analytics</span>
+</a>
+</nav>
+</header>
+
+<!-- Content -->
+<div class="pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-24 px-3 sm:px-4 md:px-6 lg:px-12 max-w-7xl mx-auto">
+<!-- Title -->
+<div class="mb-6 sm:mb-8 md:mb-10">
+<h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black font-headline tracking-tighter text-on-surface mb-2 sm:mb-3 md:mb-4">
+    Model <span class="gradient-text">Analytics</span>
+</h2>
+<p class="text-on-surface-variant font-body text-xs sm:text-sm md:text-base max-w-2xl">
+    Deep dive into the Logistic Regression model. Explore word importance, decision boundaries, and prediction patterns.
+</p>
+</div>
+
+<!-- Loading state -->
+<div id="loadingState" class="glass-panel rounded-xl p-6 sm:p-8 text-center">
+<span class="material-symbols-outlined text-3xl sm:text-4xl text-primary animate-spin">refresh</span>
+<p class="text-on-surface-variant mt-3 sm:mt-4 text-sm sm:text-base">Crunching the numbers...</p>
+</div>
+
+<!-- Analytics Content -->
+<div id="analyticsContent" class="hidden space-y-6">
+    <!-- Hero Stats Row with Animated Numbers -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        <!-- Total Messages -->
+        <div class="glow-card glass-panel rounded-xl p-4 sm:p-6 border border-white/5 relative">
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl text-primary">SMS</span>
+                    </div>
+                </div>
+                <p class="text-xs font-label text-on-surface-variant uppercase tracking-wider mb-1">Total Messages</p>
+                <p id="totalSMSs" class="text-3xl sm:text-4xl font-black font-headline stat-value">--</p>
+            </div>
+        </div>
+        
+        <!-- Spam Count -->
+        <div class="glass-panel rounded-xl p-4 sm:p-6 border border-accent-warm/30 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-accent-warm/10 rounded-full blur-2xl"></div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-accent-warm/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl text-accent-warm">warning</span>
+                    </div>
+                </div>
+                <p class="text-xs font-label text-on-surface-variant uppercase tracking-wider mb-1">Spam Detected</p>
+                <p id="spamCount" class="text-3xl sm:text-4xl font-black font-headline text-accent-warm">--</p>
+                <p id="spamPercent" class="text-xs text-accent-warm/70 mt-1">--% of dataset</p>
+            </div>
+        </div>
+        
+        <!-- Ham Count -->
+        <div class="glass-panel rounded-xl p-4 sm:p-6 border border-accent/30 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-accent/10 rounded-full blur-2xl"></div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl text-accent">verified</span>
+                    </div>
+                </div>
+                <p class="text-xs font-label text-on-surface-variant uppercase tracking-wider mb-1">Ham (Safe)</p>
+                <p id="hamCount" class="text-3xl sm:text-4xl font-black font-headline text-accent">--</p>
+                <p id="hamPercent" class="text-xs text-accent/70 mt-1">--% of dataset</p>
+            </div>
+        </div>
+        
+        <!-- Model Accuracy -->
+        <div class="glass-panel rounded-xl p-4 sm:p-6 border border-primary/30 relative overflow-hidden pulse-glow">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-xl text-primary">speed</span>
+                    </div>
+                </div>
+                <p class="text-xs font-label text-on-surface-variant uppercase tracking-wider mb-1">Model Accuracy</p>
+                <p id="accuracy" class="text-3xl sm:text-4xl font-black font-headline text-primary">--</p>
+                <p class="text-xs text-primary/70 mt-1">on test set</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Distribution Donut with Center Stats -->
+        <div class="glass-panel rounded-xl p-4 sm:p-6 border border-white/5">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-xl text-primary">pie_chart</span>
+                    <h3 class="text-lg font-headline font-bold text-on-surface">Class Distribution</h3>
+                </div>
+                <span class="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full">Balanced Check</span>
+            </div>
+            <div class="h-64 sm:h-72 relative">
+                <canvas id="distributionChart"></canvas>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-on-surface" id="ratioDisplay">--:--</p>
+                        <p class="text-xs text-on-surface-variant">Ham:Spam</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sigmoid Decision Boundary Visualization -->
+        <div class="glass-panel rounded-xl p-4 sm:p-6 border border-white/5">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="material-symbols-outlined text-xl text-primary">ssid_chart</span>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Sigmoid Decision Boundary</h3>
+            </div>
+            <div class="h-64 sm:h-72">
+                <canvas id="sigmoidChart"></canvas>
+            </div>
+            <div class="mt-3 flex items-center justify-center gap-6 text-xs">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-accent"></div>
+                    <span class="text-on-surface-variant">Ham Zone (p &lt; 0.5)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-accent-warm"></div>
+                    <span class="text-on-surface-variant">Spam Zone (p ≥ 0.5)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Word Clouds Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Spam Word Cloud -->
+        <div class="glass-panel rounded-xl p-4 sm:p-6 border border-accent-warm/20">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="material-symbols-outlined text-xl text-accent-warm">local_fire_department</span>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Spam Trigger Words</h3>
+            </div>
+            <p class="text-xs text-on-surface-variant mb-4">Words that strongly indicate spam. Size = importance.</p>
+            <div id="spamWordCloud" class="min-h-[150px] flex flex-wrap items-center justify-center p-4 bg-surface-container-lowest rounded-lg">
+                <!-- Words populated by JS -->
+            </div>
+        </div>
+        
+        <!-- Ham Word Cloud -->
+        <div class="glass-panel rounded-xl p-4 sm:p-6 border border-accent/20">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="material-symbols-outlined text-xl text-accent">shield</span>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Safe SMS Indicators</h3>
+            </div>
+            <p class="text-xs text-on-surface-variant mb-4">Words that indicate legitimate messages. Size = importance.</p>
+            <div id="hamWordCloud" class="min-h-[150px] flex flex-wrap items-center justify-center p-4 bg-surface-container-lowest rounded-lg">
+                <!-- Words populated by JS -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Feature Importance Bar Race -->
+    <div class="glass-panel rounded-xl p-4 sm:p-6 border border-white/5">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-xl text-primary">leaderboard</span>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Top 10 Feature Importance</h3>
+            </div>
+            <div class="flex gap-2">
+                <button id="showSpamBtn" class="px-3 py-1 text-xs font-label rounded-full bg-accent-warm/20 text-accent-warm border border-accent-warm/30 hover:bg-accent-warm/30 transition-colors">
+                    Spam Words
+                </button>
+                <button id="showHamBtn" class="px-3 py-1 text-xs font-label rounded-full bg-surface-container text-on-surface-variant border border-white/10 hover:bg-surface-container-high transition-colors">
+                    Ham Words
+                </button>
+            </div>
+        </div>
+        <div id="featureRaceContainer" class="space-y-3">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+    
+    <!-- Message Length Analysis -->
+    <div class="glass-panel rounded-xl p-4 sm:p-6 border border-white/5">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="material-symbols-outlined text-xl text-primary">straighten</span>
+            <h3 class="text-lg font-headline font-bold text-on-surface">Message Length Analysis</h3>
+        </div>
+        <p class="text-xs text-on-surface-variant mb-4">Spam messages tend to be longer - they pack more bait!</p>
+        <div class="h-64 sm:h-72">
+            <canvas id="lengthChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Confusion Matrix -->
+    <div class="glass-panel rounded-xl p-4 sm:p-6 border border-white/5">
+        <div class="flex items-center gap-3 mb-6">
+            <span class="material-symbols-outlined text-xl text-primary">grid_view</span>
+            <h3 class="text-lg font-headline font-bold text-on-surface">Confusion Matrix</h3>
+        </div>
+        <div class="flex justify-center">
+            <div class="relative">
+                <!-- Axis Labels -->
+                <div class="absolute -left-16 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-label text-on-surface-variant whitespace-nowrap">
+                    Actual Label
+                </div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs font-label text-on-surface-variant">
+                    Predicted Label
+                </div>
+                
+                <!-- Matrix Grid -->
+                <div class="grid grid-cols-3 gap-2 p-4">
+                    <!-- Header Row -->
+                    <div></div>
+                    <div class="text-center text-xs font-label text-accent p-2">Predicted Ham</div>
+                    <div class="text-center text-xs font-label text-accent-warm p-2">Predicted Spam</div>
+                    
+                    <!-- Ham Row -->
+                    <div class="text-xs font-label text-accent p-2 flex items-center">Actual Ham</div>
+                    <div id="tn" class="confusion-cell w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-accent/20 border border-accent/30 flex flex-col items-center justify-center cursor-default">
+                        <span class="text-2xl sm:text-3xl font-black text-accent">--</span>
+                        <span class="text-[10px] text-accent/70 mt-1">True Negative</span>
+                    </div>
+                    <div id="fp" class="confusion-cell w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-yellow-500/20 border border-yellow-500/30 flex flex-col items-center justify-center cursor-default">
+                        <span class="text-2xl sm:text-3xl font-black text-yellow-400">--</span>
+                        <span class="text-[10px] text-yellow-400/70 mt-1">False Positive</span>
+                    </div>
+                    
+                    <!-- Spam Row -->
+                    <div class="text-xs font-label text-accent-warm p-2 flex items-center">Actual Spam</div>
+                    <div id="fn" class="confusion-cell w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-orange-500/20 border border-orange-500/30 flex flex-col items-center justify-center cursor-default">
+                        <span class="text-2xl sm:text-3xl font-black text-orange-400">--</span>
+                        <span class="text-[10px] text-orange-400/70 mt-1">False Negative</span>
+                    </div>
+                    <div id="tp" class="confusion-cell w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-accent-warm/20 border border-accent-warm/30 flex flex-col items-center justify-center cursor-default">
+                        <span class="text-2xl sm:text-3xl font-black text-accent-warm">--</span>
+                        <span class="text-[10px] text-accent-warm/70 mt-1">True Positive</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Metrics -->
+        <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="text-center p-3 bg-surface-container-lowest rounded-lg">
+                <p class="text-xs text-on-surface-variant">Precision</p>
+                <p id="precision" class="text-xl font-bold text-primary">--%</p>
+            </div>
+            <div class="text-center p-3 bg-surface-container-lowest rounded-lg">
+                <p class="text-xs text-on-surface-variant">Recall</p>
+                <p id="recall" class="text-xl font-bold text-primary">--%</p>
+            </div>
+            <div class="text-center p-3 bg-surface-container-lowest rounded-lg">
+                <p class="text-xs text-on-surface-variant">F1-Score</p>
+                <p id="f1score" class="text-xl font-bold text-primary">--%</p>
+            </div>
+            <div class="text-center p-3 bg-surface-container-lowest rounded-lg">
+                <p class="text-xs text-on-surface-variant">Specificity</p>
+                <p id="specificity" class="text-xl font-bold text-primary">--%</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Model Architecture Card -->
+    <div class="glass-panel rounded-xl p-4 sm:p-6 border border-primary/20 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+        <div class="relative z-10">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl text-primary">psychology</span>
+                </div>
+                <div>
+                    <h4 class="text-lg font-headline font-bold text-on-surface">Model Architecture</h4>
+                    <p class="text-xs text-on-surface-variant">Custom implementation - No sklearn!</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- TF-IDF Stage -->
+                <div class="p-4 bg-surface-container-lowest rounded-lg border border-white/5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-symbols-outlined text-primary">text_fields</span>
+                        <span class="text-sm font-bold text-on-surface">1. TF-IDF Vectorizer</span>
+                    </div>
+                    <ul class="text-xs text-on-surface-variant space-y-1">
+                        <li>• Custom implementation</li>
+                        <li id="vocabSize">• Vocabulary: -- words</li>
+                        <li>• Term frequency weighting</li>
+                        <li>• Inverse document frequency</li>
+                    </ul>
+                </div>
+                
+                <!-- Logistic Regression Stage -->
+                <div class="p-4 bg-surface-container-lowest rounded-lg border border-white/5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-symbols-outlined text-accent">functions</span>
+                        <span class="text-sm font-bold text-on-surface">2. Logistic Regression</span>
+                    </div>
+                    <ul class="text-xs text-on-surface-variant space-y-1">
+                        <li>• Binary classification</li>
+                        <li>• Sigmoid activation</li>
+                        <li>• P(spam) = σ(θᵀx)</li>
+                        <li>• Decision: p ≥ 0.5 → Spam</li>
+                    </ul>
+                </div>
+                
+                <!-- Newton's Method Stage -->
+                <div class="p-4 bg-surface-container-lowest rounded-lg border border-white/5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-symbols-outlined text-accent-warm">speed</span>
+                        <span class="text-sm font-bold text-on-surface">3. Newton's Method</span>
+                    </div>
+                    <ul class="text-xs text-on-surface-variant space-y-1">
+                        <li>• 2nd order optimization</li>
+                        <li>• Hessian matrix inversion</li>
+                        <li>• 15 epochs only!</li>
+                        <li>• L2 regularization</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Footer -->
+<footer class="w-full py-6 sm:py-8 md:py-12 mt-auto bg-[#0f1419] border-t border-white/5">
+<div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 opacity-60 px-3 sm:px-4 md:px-6 lg:px-10">
+<p class="font-body text-[10px] sm:text-xs tracking-wide text-on-surface-variant text-center sm:text-left">
+    Spam Detection - Custom Logistic Regression & Newton's Method
+</p>
+<a class="font-body text-[10px] sm:text-xs tracking-wide text-on-surface-variant hover:text-primary transition-colors" href="/">Back to Detector</a>
+</div>
+</footer>
+</main>
+
+<script>
+let distributionChart = null;
+let lengthChart = null;
+let sigmoidChart = null;
+let analyticsData = null;
+
+// Animate number counting
+function animateCount(element, target, duration = 1000, suffix = '') {
+    let start = 0;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + (target - start) * easeOut);
+        element.textContent = current.toLocaleString() + suffix;
+        if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+}
+
+// Create word cloud
+function createWordCloud(containerId, words, isSpam) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    
+    const maxScore = Math.max(...words.map(w => w.score));
+    const minScore = Math.min(...words.map(w => w.score));
+    
+    words.forEach((item, index) => {
+        const normalized = (item.score - minScore) / (maxScore - minScore);
+        const fontSize = 12 + normalized * 20; // 12px to 32px
+        const opacity = 0.5 + normalized * 0.5;
+        
+        const span = document.createElement('span');
+        span.className = 'word-cloud-word';
+        span.textContent = item.word;
+        span.style.fontSize = `${fontSize}px`;
+        span.style.opacity = opacity;
+        span.style.animationDelay = `${index * 50}ms`;
+        
+        if (isSpam) {
+            span.style.background = `rgba(255, 107, 107, ${0.1 + normalized * 0.2})`;
+            span.style.color = '#ff6b6b';
+            span.style.border = '1px solid rgba(255, 107, 107, 0.3)';
+        } else {
+            span.style.background = `rgba(105, 219, 124, ${0.1 + normalized * 0.2})`;
+            span.style.color = '#69db7c';
+            span.style.border = '1px solid rgba(105, 219, 124, 0.3)';
+        }
+        
+        container.appendChild(span);
+    });
+}
+
+// Create feature importance bars
+function createFeatureBars(words, isSpam) {
+    const container = document.getElementById('featureRaceContainer');
+    container.innerHTML = '';
+    
+    const maxScore = Math.max(...words.map(w => w.score));
+    
+    words.slice(0, 10).forEach((item, index) => {
+        const percentage = (item.score / maxScore) * 100;
+        const color = isSpam ? 'from-red-500 to-red-400' : 'from-green-500 to-green-400';
+        const bgColor = isSpam ? 'bg-accent-warm/10' : 'bg-accent/10';
+        
+        const bar = document.createElement('div');
+        bar.className = `animate-slide-in`;
+        bar.style.animationDelay = `${index * 100}ms`;
+        bar.innerHTML = `
+            <div class="flex items-center gap-4">
+                <span class="w-6 text-xs font-bold text-on-surface-variant">#${index + 1}</span>
+                <div class="flex-1 ${bgColor} rounded-full h-8 relative overflow-hidden">
+                    <div class="feature-bar h-full bg-gradient-to-r ${color} rounded-full flex items-center px-3" style="width: 0%;" data-target="${percentage}">
+                        <span class="text-xs font-bold text-white truncate">${item.word}</span>
+                    </div>
+                </div>
+                <span class="w-16 text-right text-sm font-bold ${isSpam ? 'text-accent-warm' : 'text-accent'}">${item.score.toFixed(3)}</span>
+            </div>
+        `;
+        container.appendChild(bar);
+    });
+    
+    // Animate bars after a delay
+    setTimeout(() => {
+        container.querySelectorAll('.feature-bar').forEach(bar => {
+            bar.style.width = bar.dataset.target + '%';
+        });
+    }, 100);
+}
+
+// Create sigmoid chart
+function createSigmoidChart() {
+    const ctx = document.getElementById('sigmoidChart').getContext('2d');
+    
+    // Generate sigmoid curve data
+    const xValues = [];
+    const yValues = [];
+    for (let x = -6; x <= 6; x += 0.1) {
+        xValues.push(x);
+        yValues.push(1 / (1 + Math.exp(-x)));
+    }
+    
+    sigmoidChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: xValues,
+            datasets: [{
+                data: yValues,
+                borderColor: '#4dabf7',
+                borderWidth: 3,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                annotation: {
+                    annotations: {
+                        line1: {
+                            type: 'line',
+                            yMin: 0.5,
+                            yMax: 0.5,
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
+                            borderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'θᵀx (Linear Combination)', color: '#b8c4cc' },
+                    grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                    ticks: { color: '#b8c4cc' }
+                },
+                y: {
+                    min: 0,
+                    max: 1,
+                    title: { display: true, text: 'P(Spam)', color: '#b8c4cc' },
+                    grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                    ticks: { color: '#b8c4cc' }
+                }
+            }
+        }
+    });
+}
+
+async function loadAnalytics() {
+    try {
+        const response = await fetch('/api/analytics');
+        analyticsData = await response.json();
+        
+        // Hide loading, show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('analyticsContent').classList.remove('hidden');
+        
+        // Animate stats
+        animateCount(document.getElementById('totalSMSs'), analyticsData.total_messages);
+        animateCount(document.getElementById('spamCount'), analyticsData.spam_count);
+        animateCount(document.getElementById('hamCount'), analyticsData.ham_count);
+        animateCount(document.getElementById('accuracy'), analyticsData.accuracy, 1000, '%');
+        
+        // Calculate percentages
+        const spamPct = (analyticsData.spam_count / analyticsData.total_messages * 100).toFixed(1);
+        const hamPct = (analyticsData.ham_count / analyticsData.total_messages * 100).toFixed(1);
+        document.getElementById('spamPercent').textContent = `${spamPct}% of dataset`;
+        document.getElementById('hamPercent').textContent = `${hamPct}% of dataset`;
+        
+        // Ratio display
+        const ratio = (analyticsData.ham_count / analyticsData.spam_count).toFixed(1);
+        document.getElementById('ratioDisplay').textContent = `${ratio}:1`;
+        
+        // Vocabulary size
+        document.getElementById('vocabSize').textContent = `• Vocabulary: ${analyticsData.feature_count.toLocaleString()} words`;
+        
+        // Create distribution chart (donut)
+        const distCtx = document.getElementById('distributionChart').getContext('2d');
+        distributionChart = new Chart(distCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Ham (Safe)', 'Spam'],
+                datasets: [{
+                    data: [analyticsData.ham_count, analyticsData.spam_count],
+                    backgroundColor: [
+                        'rgba(105, 219, 124, 0.8)',
+                        'rgba(255, 107, 107, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(105, 219, 124, 1)',
+                        'rgba(255, 107, 107, 1)'
+                    ],
+                    borderWidth: 2,
+                    cutout: '65%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#b8c4cc', padding: 20, font: { size: 12 } }
+                    }
+                }
+            }
+        });
+        
+        // Create sigmoid chart
+        createSigmoidChart();
+        
+        // Create length chart
+        const lengthCtx = document.getElementById('lengthChart').getContext('2d');
+        lengthChart = new Chart(lengthCtx, {
+            type: 'bar',
+            data: {
+                labels: analyticsData.length_distribution.labels,
+                datasets: [
+                    {
+                        label: 'Ham',
+                        data: analyticsData.length_distribution.ham,
+                        backgroundColor: 'rgba(105, 219, 124, 0.7)',
+                        borderColor: 'rgba(105, 219, 124, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Spam',
+                        data: analyticsData.length_distribution.spam,
+                        backgroundColor: 'rgba(255, 107, 107, 0.7)',
+                        borderColor: 'rgba(255, 107, 107, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                        ticks: { color: '#b8c4cc' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                        ticks: { color: '#b8c4cc' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#b8c4cc', padding: 15, font: { size: 11 } }
+                    }
+                }
+            }
+        });
+        
+        // Word clouds
+        createWordCloud('spamWordCloud', analyticsData.top_spam_words, true);
+        createWordCloud('hamWordCloud', analyticsData.top_ham_words, false);
+        
+        // Feature bars (default: spam)
+        createFeatureBars(analyticsData.top_spam_words, true);
+        
+        // Confusion matrix
+        if (analyticsData.confusion_matrix) {
+            const cm = analyticsData.confusion_matrix;
+            document.querySelector('#tn span:first-child').textContent = cm.tn;
+            document.querySelector('#fp span:first-child').textContent = cm.fp;
+            document.querySelector('#fn span:first-child').textContent = cm.fn;
+            document.querySelector('#tp span:first-child').textContent = cm.tp;
+            
+            // Calculate metrics
+            const precision = (cm.tp / (cm.tp + cm.fp) * 100).toFixed(1);
+            const recall = (cm.tp / (cm.tp + cm.fn) * 100).toFixed(1);
+            const f1 = (2 * precision * recall / (parseFloat(precision) + parseFloat(recall))).toFixed(1);
+            const specificity = (cm.tn / (cm.tn + cm.fp) * 100).toFixed(1);
+            
+            document.getElementById('precision').textContent = precision + '%';
+            document.getElementById('recall').textContent = recall + '%';
+            document.getElementById('f1score').textContent = f1 + '%';
+            document.getElementById('specificity').textContent = specificity + '%';
+        }
+        
+    } catch (err) {
+        console.error('Failed to load analytics:', err);
+        document.getElementById('loadingState').innerHTML = `
+            <span class="material-symbols-outlined text-3xl sm:text-4xl text-red-500">error</span>
+            <p class="text-on-surface-variant mt-3 sm:mt-4 text-sm sm:text-base">Failed to load analytics data</p>
+            <p class="text-xs text-on-surface-variant mt-2">Make sure the server is running.</p>
+        `;
+    }
+}
+
+// Toggle buttons for feature bars
+document.getElementById('showSpamBtn').addEventListener('click', function() {
+    this.classList.add('bg-accent-warm/20', 'text-accent-warm', 'border-accent-warm/30');
+    this.classList.remove('bg-surface-container', 'text-on-surface-variant', 'border-white/10');
+    
+    const hamBtn = document.getElementById('showHamBtn');
+    hamBtn.classList.remove('bg-accent/20', 'text-accent', 'border-accent/30');
+    hamBtn.classList.add('bg-surface-container', 'text-on-surface-variant', 'border-white/10');
+    
+    createFeatureBars(analyticsData.top_spam_words, true);
+});
+
+document.getElementById('showHamBtn').addEventListener('click', function() {
+    this.classList.add('bg-accent/20', 'text-accent', 'border-accent/30');
+    this.classList.remove('bg-surface-container', 'text-on-surface-variant', 'border-white/10');
+    
+    const spamBtn = document.getElementById('showSpamBtn');
+    spamBtn.classList.remove('bg-accent-warm/20', 'text-accent-warm', 'border-accent-warm/30');
+    spamBtn.classList.add('bg-surface-container', 'text-on-surface-variant', 'border-white/10');
+    
+    createFeatureBars(analyticsData.top_ham_words, false);
+});
+
+document.addEventListener('DOMContentLoaded', loadAnalytics);
+</script>
+</body>
+</html>
