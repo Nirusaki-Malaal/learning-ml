@@ -98,8 +98,8 @@ tailwind.config = {
 </div>
 
 <!-- Modal -->
-<div id="chartModal" class="fixed inset-0 z-50 hidden">
-<div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
+<div id="chartModal" class="fixed inset-0 z-50 hidden" onclick="if(event.target === this) closeModal()">
+<div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
 <div class="absolute inset-2 sm:inset-4 md:inset-8 lg:inset-12 bg-surface-container rounded-xl border border-white/10 flex flex-col overflow-hidden">
 <!-- Modal Header -->
 <div class="flex justify-between items-center p-3 sm:p-4 md:p-6 border-b border-white/5">
@@ -166,6 +166,11 @@ function openModal(featId) {
     const info = featureInfo[featId];
     const featData = analyticsData.features[featId];
     
+    if (!info || !featData) {
+        console.error('Feature data not available');
+        return;
+    }
+    
     document.getElementById('modalTitle').textContent = `${info.name} vs Price`;
     document.getElementById('modalDesc').textContent = info.desc;
     document.getElementById('modalCoef').innerHTML = `<span class="text-primary">Coefficient:</span> ${featData.coefficient.toFixed(4)}`;
@@ -174,7 +179,13 @@ function openModal(featId) {
     document.body.style.overflow = 'hidden';
     
     // Create modal chart
-    const ctx = document.getElementById('modalChart').getContext('2d');
+    const ctx = document.getElementById('modalChart');
+    if (!ctx) {
+        console.error('Modal chart canvas not found');
+        return;
+    }
+    
+    const context = ctx.getContext('2d');
     
     if (modalChart) {
         modalChart.destroy();
@@ -185,7 +196,7 @@ function openModal(featId) {
         y: analyticsData.prices[i]
     }));
     
-    modalChart = new Chart(ctx, {
+    modalChart = new Chart(context, {
         type: 'scatter',
         data: {
             datasets: [

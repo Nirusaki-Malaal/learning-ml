@@ -1,15 +1,43 @@
 // Delhi Weather Predictor - LWLR Features
 const features = [
     { id: 'month', name: 'Month', desc: 'Month of the year (1-12).', detail: 'Seasons heavily influence Delhi temperature.' },
-    { id: 'dayofyear', name: 'Day of Year', desc: 'Day number in the year (1-365).', detail: 'Captures seasonal temperature patterns.' },
+    { id: 'day', name: 'Day', desc: 'Day of the month (1-31).', detail: 'Combined with month to determine seasonal position.' },
     { id: 'humidity', name: 'Humidity', desc: 'Relative humidity percentage.', detail: 'Higher humidity often means monsoon season.' },
     { id: 'windspeed', name: 'Wind Speed', desc: 'Wind speed in km/h.', detail: 'Wind can moderate temperatures.' },
     { id: 'sealevelpressure', name: 'Pressure', desc: 'Sea level atmospheric pressure (hPa).', detail: 'Pressure systems affect weather patterns.' }
 ];
 
 let currentActualTemp = null;
+let optimalBandwidth = 0.5;
 
-document.addEventListener('DOMContentLoaded', () => {
+// Calculate day of year from month and day
+function calculateDayOfYear(month, day) {
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let dayOfYear = 0;
+    for (let i = 0; i < month - 1; i++) {
+        dayOfYear += daysInMonth[i];
+    }
+    dayOfYear += day;
+    return dayOfYear;
+}
+
+// Convert day of year back to month and day
+function dayOfYearToMonthDay(dayOfYear) {
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let month = 1;
+    let remainingDays = dayOfYear;
+    
+    for (let i = 0; i < daysInMonth.length; i++) {
+        if (remainingDays <= daysInMonth[i]) {
+            return { month: i + 1, day: remainingDays };
+        }
+        remainingDays -= daysInMonth[i];
+        month++;
+    }
+    return { month: 12, day: 31 };
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
     const randomBtn = document.getElementById('randomBtn');
     const predictBtn = document.getElementById('predictBtn');
     const valueDisplay = document.getElementById('predictedValue');
@@ -19,6 +47,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const actualTempCard = document.getElementById('actualTempCard');
     const actualTempDisplay = document.getElementById('actualTemp');
     const errorDisplay = document.getElementById('predictionError');
+
+    // Fetch optimal bandwidth from server
+    try {
+        const response = await fetch('/api/optimal-bandwidth');
+        const data = await response.json();
+        if (data.optimal_bandwidth) {
+            optimalBandwidth = data.optimal_bandwidth;
+            if (bandwidthSlider) {
+                bandwidthSlider.value = optimalBandwidth;
+                if (bandwidthValue) {
+                    bandwidthValue.textContent = optimalBandwidth.toFixed(2);
+                }
+            }
+        }
+    } catch (err) {
+        console.log('Using default bandwidth');
+    }
 
     // Bandwidth slider update
     if (bandwidthSlider && bandwidthValue) {
@@ -30,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Feature explainers
     features.forEach(f => {
         const input = document.getElementById(f.id);
-        if (input) {
+        if (input && explainMsg) {
             const showExplainer = () => {
                 explainMsg.innerHTML = `<strong style="color:#ffcc4d">${f.name}</strong>: ${f.desc} <em>${f.detail}</em>`;
             };
@@ -38,11 +83,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Info button click handlers (for better visibility on mobile)
+    features.forEach(f => {
+        const input = document.getElementById(f.id);
+        if (input) {
+            const label = input.closest('.space-y-2');
+            if (label) {
+                const infoIcon = label.querySelector('.material-symbols-outlined.cursor-pointer');
+                if (infoIcon && explainMsg) {
+                    infoIcon.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        explainMsg.innerHTML = `<strong style="color:#ffcc4d">${f.name}</strong>: ${f.desc} <em>${f.detail}</em>`;
+                        explainMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+                }
+            }
+        }
+    });
+
     // Load random sample
     if (randomBtn) {
         randomBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            randomBtn.querySelector('.material-symbols-outlined').classList.add('animate-spin');
+            const icon = randomBtn.querySelector('.material-symbols-outlined');
+            if (icon) icon.classList.add('animate-spin');
             try {
                 const response = await fetch('/random');
                 const data = await response.json();
@@ -52,7 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('month').value = data.month;
                 }
                 if (data.dayofyear !== undefined) {
-                    document.getElementById('dayofyear').value = data.dayofyear;
+                    // Convert dayofyear to day of month
+                    const { month, day } = dayOfYearToMonthDay(data.dayofyear);
+                    const dayInput = document.getElementById('day');
+                    if (dayInput) {
+                        dayInput.value = day;
+                    }
                 }
                 if (data.humidity !== undefined) {
                     document.getElementById('humidity').value = Math.round(data.humidity);
@@ -67,18 +137,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Store and show actual temperature
                 if (data.actual_temp !== undefined) {
                     currentActualTemp = data.actual_temp;
-                    actualTempDisplay.textContent = data.actual_temp.toFixed(1);
-                    actualTempCard.classList.remove('hidden');
+                    if (actualTempDisplay) {
+                        actualTempDisplay.textContent = data.actual_temp.toFixed(1);
+                    }
+                    if (actualTempCard) {
+                        actualTempCard.classList.remove('hidden');
+                    }
                 }
                 
                 // Reset prediction display
-                valueDisplay.textContent = '--';
-                errorDisplay.textContent = '--';
+                if (valueDisplay) {
+                    valueDisplay.textContent = '--';
+                }
+                if (errorDisplay) {
+                    errorDisplay.textContent = '--';
+                }
                 
             } catch (err) {
                 console.error('Failed to load random sample:', err);
             } finally {
-                randomBtn.querySelector('.material-symbols-outlined').classList.remove('animate-spin');
+                const icon = randomBtn.querySelector('.material-symbols-outlined');
+                if (icon) icon.classList.remove('animate-spin');
             }
         });
     }
@@ -88,13 +167,17 @@ document.addEventListener('DOMContentLoaded', () => {
         predictBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             
+            const month = parseInt(document.getElementById('month').value) || 5;
+            const day = parseInt(document.getElementById('day').value) || 15;
+            const dayofyear = calculateDayOfYear(month, day);
+            
             const payload = {
-                month: parseInt(document.getElementById('month').value) || 5,
-                dayofyear: parseInt(document.getElementById('dayofyear').value) || 150,
+                month: month,
+                dayofyear: dayofyear,
                 humidity: parseFloat(document.getElementById('humidity').value) || 45,
                 windspeed: parseFloat(document.getElementById('windspeed').value) || 15,
                 sealevelpressure: parseFloat(document.getElementById('sealevelpressure').value) || 1010,
-                bandwidth: parseFloat(bandwidthSlider?.value) || 0.5
+                bandwidth: parseFloat(bandwidthSlider?.value) || optimalBandwidth
             };
 
             const originalHTML = predictBtn.innerHTML;
@@ -110,11 +193,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 
                 // Animate the value
-                const startVal = parseFloat(valueDisplay.textContent) || 0;
-                animateValue(valueDisplay, startVal, data.prediction, 800);
+                if (valueDisplay) {
+                    const startVal = parseFloat(valueDisplay.textContent) || 0;
+                    animateValue(valueDisplay, startVal, data.prediction, 800);
+                }
                 
                 // Show error if we have actual temp
-                if (currentActualTemp !== null) {
+                if (currentActualTemp !== null && errorDisplay) {
                     const error = Math.abs(data.prediction - currentActualTemp);
                     setTimeout(() => {
                         errorDisplay.textContent = error.toFixed(1);
@@ -123,7 +208,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
             } catch (err) {
                 console.error('Prediction failed:', err);
-                valueDisplay.textContent = 'Error';
+                if (valueDisplay) {
+                    valueDisplay.textContent = 'Error';
+                }
             } finally {
                 predictBtn.innerHTML = originalHTML;
                 predictBtn.disabled = false;

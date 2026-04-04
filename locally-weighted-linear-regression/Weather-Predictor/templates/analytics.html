@@ -212,31 +212,57 @@ let analyticsData = null;
 let modalChart = null;
 let currentModalFeature = null;
 let miniCharts = {};
+let optimalBandwidth = 0.5;
 
 async function fetchAnalytics(bandwidth) {
-    const response = await fetch(`/api/analytics?bandwidth=${bandwidth}`);
-    return await response.json();
+    try {
+        const response = await fetch(`/api/analytics?bandwidth=${bandwidth}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+        throw error;
+    }
 }
 
 function openModal(featId) {
+    if (!analyticsData || !analyticsData.features || !analyticsData.features[featId]) {
+        console.error('Analytics data not available for feature:', featId);
+        return;
+    }
+    
     currentModalFeature = featId;
     const modal = document.getElementById('chartModal');
+    if (!modal) return;
+    
     const info = featureInfo[featId];
     const featData = analyticsData.features[featId];
     
-    document.getElementById('modalTitle').textContent = `${info.name} vs Temperature`;
-    document.getElementById('modalDesc').textContent = info.desc;
-    document.getElementById('modalStats').innerHTML = `<span class="text-primary">Data points:</span> ${featData.values.length}`;
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDesc = document.getElementById('modalDesc');
+    const modalStats = document.getElementById('modalStats');
+    
+    if (modalTitle) modalTitle.textContent = `${info.name} vs Temperature`;
+    if (modalDesc) modalDesc.textContent = info.desc;
+    if (modalStats) modalStats.innerHTML = `<span class="text-primary">Data points:</span> ${featData.values.length}`;
     
     // Sync modal bandwidth with global
-    const globalBw = parseFloat(document.getElementById('globalBandwidth').value);
-    document.getElementById('modalBandwidth').value = globalBw;
-    document.getElementById('modalBandwidthValue').textContent = `τ = ${globalBw.toFixed(1)}`;
+    const globalBwSlider = document.getElementById('globalBandwidth');
+    const modalBwSlider = document.getElementById('modalBandwidth');
+    const modalBwValue = document.getElementById('modalBandwidthValue');
     
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    
-    renderModalChart(featId, globalBw);
+    if (globalBwSlider && modalBwSlider && modalBwValue) {
+        const globalBw = parseFloat(globalBwSlider.value);
+        modalBwSlider.value = globalBw;
+        modalBwValue.textContent = `τ = ${globalBw.toFixed(1)}`;
+        
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        renderModalChart(featId, globalBw);
+    }
 }
 
 function renderModalChart(featId, bandwidth) {
@@ -334,7 +360,10 @@ function renderModalChart(featId, bandwidth) {
 }
 
 function closeModal() {
-    document.getElementById('chartModal').classList.add('hidden');
+    const modal = document.getElementById('chartModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
     document.body.style.overflow = '';
     currentModalFeature = null;
     if (modalChart) {
@@ -348,25 +377,33 @@ document.addEventListener('keydown', (e) => {
 });
 
 async function updateAllCharts(bandwidth) {
-    analyticsData = await fetchAnalytics(bandwidth);
-    
-    for (const [featId, chart] of Object.entries(miniCharts)) {
-        const featData = analyticsData.features[featId];
+    try {
+        analyticsData = await fetchAnalytics(bandwidth);
         
-        // Update LWLR curve data
-        chart.data.datasets[1].data = featData.curve.x.map((x, i) => ({ 
-            x, y: featData.curve.y[i] 
-        }));
-        chart.update('none');
-    }
-    
-    // Update modal if open
-    if (currentModalFeature && modalChart) {
-        const featData = analyticsData.features[currentModalFeature];
-        modalChart.data.datasets[1].data = featData.curve.x.map((x, i) => ({ 
-            x, y: featData.curve.y[i] 
-        }));
-        modalChart.update();
+        for (const [featId, chart] of Object.entries(miniCharts)) {
+            const featData = analyticsData.features[featId];
+            
+            if (featData && chart && chart.data && chart.data.datasets[1]) {
+                // Update LWLR curve data
+                chart.data.datasets[1].data = featData.curve.x.map((x, i) => ({ 
+                    x, y: featData.curve.y[i] 
+                }));
+                chart.update('none');
+            }
+        }
+        
+        // Update modal if open
+        if (currentModalFeature && modalChart && analyticsData.features[currentModalFeature]) {
+            const featData = analyticsData.features[currentModalFeature];
+            if (modalChart.data && modalChart.data.datasets[1]) {
+                modalChart.data.datasets[1].data = featData.curve.x.map((x, i) => ({ 
+                    x, y: featData.curve.y[i] 
+                }));
+                modalChart.update();
+            }
+        }
+    } catch (error) {
+        console.error('Failed to update charts:', error);
     }
 }
 
@@ -375,6 +412,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bandwidthDisplay = document.getElementById('bandwidthDisplay');
     const modalBandwidthSlider = document.getElementById('modalBandwidth');
     const modalBandwidthValue = document.getElementById('modalBandwidthValue');
+    
+    // Fetch optimal bandwidth
+    try {
+        const response = await fetch('/api/optimal-bandwidth');
+        const data = await response.json();
+        if (data.optimal_bandwidth) {
+            optimalBandwidth = data.optimal_bandwidth;
+            if (globalBandwidthSlider) {
+                globalBandwidthSlider.value = optimalBandwidth;
+                if (bandwidthDisplay) {
+                    bandwidthDisplay.textContent = `τ = ${optimalBandwidth.toFixed(1)}`;
+                }
+            }
+        }
+    } catch (err) {
+        console.log('Using default bandwidth');
+    }
     
     let debounceTimer;
     
@@ -401,7 +455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     try {
-        analyticsData = await fetchAnalytics(0.5);
+        analyticsData = await fetchAnalytics(optimalBandwidth);
         
         document.getElementById('loadingState').classList.add('hidden');
         const grid = document.getElementById('chartsGrid');

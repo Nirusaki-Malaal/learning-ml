@@ -170,7 +170,7 @@
                     <span class="material-symbols-outlined text-sm text-primary">calendar_month</span>
                     Month
                 </span>
-                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Month of year (1-12)">info</span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-pointer hover:opacity-100 hover:text-primary transition-all" title="Month of year (1-12)" onclick="this.click()">info</span>
             </label>
             <select id="month" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none">
                 <option value="1">January</option>
@@ -188,16 +188,16 @@
             </select>
         </div>
         
-        <!-- Day of Year -->
+        <!-- Day of Month -->
         <div class="space-y-2">
             <label class="text-xs font-label text-on-surface-variant flex items-center justify-between">
                 <span class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm text-primary">today</span>
-                    Day of Year
+                    Day of Month
                 </span>
-                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Day number in year (1-365)">info</span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-pointer hover:opacity-100 hover:text-primary transition-all" title="Day of the month (1-31)">info</span>
             </label>
-            <input id="dayofyear" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="150" type="number" min="1" max="366" value="150"/>
+            <input id="day" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="15" type="number" min="1" max="31" value="15"/>
         </div>
         
         <!-- Humidity -->
@@ -207,7 +207,7 @@
                     <span class="material-symbols-outlined text-sm text-accent">water_drop</span>
                     Humidity (%)
                 </span>
-                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Relative humidity percentage">info</span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-pointer hover:opacity-100 hover:text-primary transition-all" title="Relative humidity percentage">info</span>
             </label>
             <input id="humidity" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="45" type="number" min="0" max="100" value="45"/>
         </div>
@@ -219,7 +219,7 @@
                     <span class="material-symbols-outlined text-sm text-accent">air</span>
                     Wind (km/h)
                 </span>
-                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Wind speed in kilometers per hour">info</span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-pointer hover:opacity-100 hover:text-primary transition-all" title="Wind speed in kilometers per hour">info</span>
             </label>
             <input id="windspeed" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="15" type="number" min="0" max="100" value="15"/>
         </div>
@@ -231,7 +231,7 @@
                     <span class="material-symbols-outlined text-sm text-accent">speed</span>
                     Pressure (hPa)
                 </span>
-                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Sea level atmospheric pressure">info</span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-pointer hover:opacity-100 hover:text-primary transition-all" title="Sea level atmospheric pressure">info</span>
             </label>
             <input id="sealevelpressure" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="1010" type="number" min="900" max="1100" value="1010"/>
         </div>

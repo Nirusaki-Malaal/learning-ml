@@ -27,6 +27,19 @@ document.addEventListener('DOMContentLoaded', () => {
                  explainMsg.innerHTML = `<strong style="color:#00e5ff">${f.name}</strong>: ${f.desc} <em>${f.detail}</em>`;
             };
             input.addEventListener('focus', showExplainer);
+            
+            // Add click handler for info icons to work on mobile/touch devices
+            const label = input.parentElement.querySelector('label .material-symbols-outlined');
+            if(label) {
+                label.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showExplainer();
+                    input.focus();
+                });
+                // Make it more obvious it's clickable
+                label.style.cursor = 'pointer';
+            }
         }
     });
 
@@ -71,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error(err);
             } finally {
-                predictBtn.innerText = 'Predict Price';
+                predictBtn.innerText = originalText;
             }
         });
     }

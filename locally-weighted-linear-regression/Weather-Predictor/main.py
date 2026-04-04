@@ -82,13 +82,68 @@ X_train_norm = (X_train - X_mean) / X_std
 lwlr_model = WeatherLWLR(X_train_norm, y_train)
 
 
+# Auto-tune bandwidth for optimal performance
+def find_optimal_bandwidth(X: np.ndarray, y: np.ndarray, 
+                           bandwidths: list = None,
+                           n_samples: int = 500) -> float:
+    """Find optimal bandwidth using cross-validation on a subsample"""
+    if bandwidths is None:
+        bandwidths = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.5, 2.0]
+    
+    # Subsample for faster validation
+    if len(X) > n_samples:
+        indices = np.random.choice(len(X), n_samples, replace=False)
+        X_sample = X[indices]
+        y_sample = y[indices]
+    else:
+        X_sample = X
+        y_sample = y
+    
+    best_bandwidth = 0.5
+    best_mae = float('inf')
+    
+    print("🔧 Auto-tuning bandwidth parameter...")
+    
+    for bw in bandwidths:
+        errors = []
+        # Leave-one-out on subsample
+        for i in range(min(100, len(X_sample))):  # Validate on first 100 points
+            # Create model without point i
+            X_train_cv = np.delete(X_sample, i, axis=0)
+            y_train_cv = np.delete(y_sample, i, axis=0)
+            
+            model_cv = WeatherLWLR(X_train_cv, y_train_cv)
+            
+            # Predict point i
+            pred = model_cv.predict(X_sample[i], bw)
+            errors.append(abs(pred - y_sample[i]))
+        
+        mae = np.mean(errors)
+        print(f"  Bandwidth {bw:.2f}: MAE = {mae:.2f}°C")
+        
+        if mae < best_mae:
+            best_mae = mae
+            best_bandwidth = bw
+    
+    print(f"✅ Optimal bandwidth: {best_bandwidth:.2f} (MAE: {best_mae:.2f}°C)\n")
+    return best_bandwidth
+
+
+# Find and set optimal bandwidth
+OPTIMAL_BANDWIDTH = find_optimal_bandwidth(X_train_norm, y_train)
+
+
 class WeatherFeatures(BaseModel):
     month: int
     dayofyear: int
     humidity: float
     windspeed: float
     sealevelpressure: float
-    bandwidth: Optional[float] = 0.5
+    bandwidth: Optional[float] = None  # If None, use OPTIMAL_BANDWIDTH
+    
+    def get_bandwidth(self) -> float:
+        """Get bandwidth, defaulting to optimal if not specified"""
+        return self.bandwidth if self.bandwidth is not None else OPTIMAL_BANDWIDTH
 
 
 @app.get("/")
@@ -109,7 +164,7 @@ def predict(features: WeatherFeatures):
     # Normalize query
     query_norm = (query - X_mean) / X_std
     
-    prediction = lwlr_model.predict(query_norm, features.bandwidth)
+    prediction = lwlr_model.predict(query_norm, features.get_bandwidth())
     
     # Clamp to reasonable temperature range
     prediction = max(0, min(50, prediction))
@@ -187,8 +242,12 @@ else:
 
 
 @app.get("/api/analytics")
-def get_analytics_data(bandwidth: float = Query(default=0.5, ge=0.01, le=5.0)):
+def get_analytics_data(bandwidth: float = Query(default=None, ge=0.01, le=5.0)):
     """Get analytics data with LWLR curves at specified bandwidth"""
+    
+    # Use optimal bandwidth if not specified
+    if bandwidth is None:
+        bandwidth = OPTIMAL_BANDWIDTH
     
     result = {
         "features": {},
@@ -225,6 +284,11 @@ def get_analytics_data(bandwidth: float = Query(default=0.5, ge=0.01, le=5.0)):
         # Batch prediction
         lwlr_predictions = fast_lwlr.predict_batch(np.array(queries_norm), bandwidth)
         
+        # Replace NaN/Inf with reasonable values
+        lwlr_predictions = np.nan_to_num(lwlr_predictions, nan=25.0, posinf=50.0, neginf=0.0)
+        # Clamp to reasonable temperature range
+        lwlr_predictions = np.clip(lwlr_predictions, 0, 50)
+        
         result["features"][feat] = {
             "values": x_vals.tolist(),
             "curve": {
@@ -251,5 +315,12 @@ def get_dataset_stats():
             "max": float(df_weather["temp"].max()),
             "mean": float(df_weather["temp"].mean())
         },
-        "features": FEATURE_COLS
+        "features": FEATURE_COLS,
+        "optimal_bandwidth": OPTIMAL_BANDWIDTH
     }
+
+
+@app.get("/api/optimal-bandwidth")
+def get_optimal_bandwidth():
+    """Get the optimal bandwidth value"""
+    return {"optimal_bandwidth": OPTIMAL_BANDWIDTH}
