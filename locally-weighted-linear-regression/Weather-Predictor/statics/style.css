@@ -1,0 +1,57 @@
+body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f1419; color: #e8eaef; }
+.glass-panel {
+    background: rgba(45, 53, 64, 0.4);
+    backdrop-filter: blur(40px);
+    box-shadow: inset 0 1px 1px rgba(255, 204, 77, 0.1);
+}
+.liquid-gradient {
+    background: linear-gradient(135deg, #ffcc4d 0%, #ff9500 100%);
+}
+.neon-glow {
+    box-shadow: 0px 8px 30px rgba(255, 149, 0, 0.25);
+}
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.active-glow {
+    box-shadow: 0 0 15px rgba(255, 204, 77, 0.4);
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+/* Mobile touch improvements */
+input, select, button {
+    -webkit-tap-highlight-color: transparent;
+}
+/* Better focus states for mobile */
+input:focus, select:focus {
+    outline: none;
+}
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+/* Range slider styling for webkit */
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 4px;
+}
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #161c24;
+}
+::-webkit-scrollbar-thumb {
+    background: #3b494c;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #ffcc4d;
+}

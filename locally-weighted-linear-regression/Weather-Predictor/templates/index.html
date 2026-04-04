@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Delhi Weather Predictor - LWLR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "background": "#0f1419",
+                    "surface-container-low": "#161c24",
+                    "on-background": "#e0e2eb",
+                    "surface-container-highest": "#2d3540",
+                    "outline": "#849396",
+                    "surface-container": "#1a2230",
+                    "surface-container-lowest": "#0a0e14",
+                    "primary": "#ffcc4d",
+                    "on-surface-variant": "#b8c4cc",
+                    "primary-container": "#ff9500",
+                    "on-primary": "#1a1000",
+                    "surface": "#0f1419",
+                    "on-surface": "#e8eaef",
+                    "outline-variant": "#3b494c",
+                    "surface-variant": "#2d3540",
+                    "surface-container-high": "#242c38",
+                    "accent": "#4dabf7",
+                    "accent-warm": "#ff6b6b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "1rem",
+                    "xl": "1.25rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Outfit", "sans-serif"],
+                    "body": ["Plus Jakarta Sans", "sans-serif"],
+                    "label": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<link rel="stylesheet" href="/statics/style.css">
+<style>
+    .sun-gradient {
+        background: linear-gradient(135deg, #ffcc4d 0%, #ff9500 50%, #ff6b35 100%);
+    }
+    .sun-glow {
+        box-shadow: 0px 8px 40px rgba(255, 149, 0, 0.35);
+    }
+    .temp-display {
+        background: linear-gradient(180deg, #ff9500 0%, #ff6b35 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .bandwidth-track {
+        background: linear-gradient(to right, #4dabf7 0%, #ffcc4d 50%, #ff6b6b 100%);
+    }
+    input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 8px;
+        border-radius: 4px;
+        outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffcc4d;
+        cursor: pointer;
+        border: 3px solid #0f1419;
+        box-shadow: 0 2px 10px rgba(255, 204, 77, 0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ffcc4d;
+        cursor: pointer;
+        border: 3px solid #0f1419;
+        box-shadow: 0 2px 10px rgba(255, 204, 77, 0.5);
+    }
+</style>
+</head>
+<body class="bg-background min-h-screen selection:bg-primary-container selection:text-on-primary-container">
+<!-- Main Canvas -->
+<main class="min-h-screen relative overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 right-0 z-40 flex justify-between items-center px-4 sm:px-6 md:px-10 h-16 sm:h-20 bg-[#0f1419]/85 backdrop-blur-2xl border-b border-white/5">
+<div class="flex items-center gap-3 sm:gap-4">
+<span class="material-symbols-outlined text-2xl text-primary">wb_sunny</span>
+<span class="text-lg sm:text-xl font-bold tracking-tight text-primary font-headline">Delhi Weather</span>
+</div>
+<nav class="flex items-center gap-4 sm:gap-6">
+<a href="/" class="text-sm font-headline font-bold text-primary flex items-center gap-2 border-b-2 border-primary pb-1">
+<span class="material-symbols-outlined text-lg">thermostat</span>
+<span class="hidden sm:inline">Predictor</span>
+</a>
+<a href="/analytics" class="text-sm font-headline text-on-surface-variant hover:text-primary transition-opacity flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">query_stats</span>
+<span class="hidden sm:inline">Analytics</span>
+</a>
+</nav>
+</header>
+<!-- Content Area -->
+<div class="pt-24 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6 md:px-12 max-w-6xl mx-auto">
+<!-- Hero Title -->
+<div class="mb-8 sm:mb-12">
+<h2 class="text-3xl sm:text-5xl md:text-6xl font-black font-headline tracking-tighter text-on-surface mb-3 sm:mb-4">
+    Delhi Temperature <span class="text-transparent bg-clip-text sun-gradient">Predictor</span>
+</h2>
+<p class="text-on-surface-variant font-body text-sm sm:text-base md:text-lg max-w-2xl">
+    Predict temperature using <strong class="text-primary">Locally Weighted Linear Regression (LWLR)</strong> trained on Delhi weather data (2013-2024). Adjust the bandwidth to control model locality.
+</p>
+</div>
+<!-- Main Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+<!-- Input Form Container -->
+<div class="lg:col-span-8 glass-panel rounded-xl p-4 sm:p-6 md:p-8 border border-white/5">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+<h3 class="text-lg sm:text-xl font-headline font-bold text-on-surface flex items-center gap-2">
+    <span class="material-symbols-outlined text-primary">tune</span>
+    Weather Inputs
+</h3>
+<button class="flex items-center gap-2 text-xs font-label uppercase tracking-widest text-primary-container hover:text-primary transition-colors group" id="randomBtn">
+<span class="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">autorenew</span>
+    Load Random Day
+</button>
+</div>
+
+<form class="space-y-6">
+    <!-- Bandwidth Slider - Most Important -->
+    <div class="p-4 sm:p-5 rounded-xl bg-surface-container-lowest border border-primary/20">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <label class="text-sm font-headline font-bold text-primary flex items-center gap-2">
+                <span class="material-symbols-outlined">settings_ethernet</span>
+                LWLR Bandwidth (τ)
+            </label>
+            <span id="bandwidthValue" class="text-lg font-bold text-primary font-headline">0.50</span>
+        </div>
+        <input type="range" id="bandwidth" min="0.05" max="2.0" step="0.05" value="0.5" 
+               class="w-full bandwidth-track cursor-pointer"/>
+        <div class="flex justify-between text-[10px] text-on-surface-variant mt-2">
+            <span>← More Local (0.05)</span>
+            <span>More Global (2.0) →</span>
+        </div>
+        <p class="text-xs text-on-surface-variant mt-3 leading-relaxed">
+            <strong class="text-accent">Lower τ</strong>: Focuses on nearby data points, captures local patterns.
+            <strong class="text-accent-warm">Higher τ</strong>: Uses more data, smoother predictions.
+        </p>
+    </div>
+
+    <!-- Feature Inputs Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
+        <!-- Month -->
+        <div class="space-y-2">
+            <label class="text-xs font-label text-on-surface-variant flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm text-primary">calendar_month</span>
+                    Month
+                </span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Month of year (1-12)">info</span>
+            </label>
+            <select id="month" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5" selected>May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+        </div>
+        
+        <!-- Day of Year -->
+        <div class="space-y-2">
+            <label class="text-xs font-label text-on-surface-variant flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm text-primary">today</span>
+                    Day of Year
+                </span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Day number in year (1-365)">info</span>
+            </label>
+            <input id="dayofyear" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="150" type="number" min="1" max="366" value="150"/>
+        </div>
+        
+        <!-- Humidity -->
+        <div class="space-y-2">
+            <label class="text-xs font-label text-on-surface-variant flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm text-accent">water_drop</span>
+                    Humidity (%)
+                </span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Relative humidity percentage">info</span>
+            </label>
+            <input id="humidity" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="45" type="number" min="0" max="100" value="45"/>
+        </div>
+        
+        <!-- Wind Speed -->
+        <div class="space-y-2">
+            <label class="text-xs font-label text-on-surface-variant flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm text-accent">air</span>
+                    Wind (km/h)
+                </span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Wind speed in kilometers per hour">info</span>
+            </label>
+            <input id="windspeed" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="15" type="number" min="0" max="100" value="15"/>
+        </div>
+        
+        <!-- Sea Level Pressure -->
+        <div class="space-y-2 col-span-2 sm:col-span-1">
+            <label class="text-xs font-label text-on-surface-variant flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm text-accent">speed</span>
+                    Pressure (hPa)
+                </span>
+                <span class="material-symbols-outlined text-xs opacity-50 cursor-help" title="Sea level atmospheric pressure">info</span>
+            </label>
+            <input id="sealevelpressure" class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface outline-none" placeholder="1010" type="number" min="900" max="1100" value="1010"/>
+        </div>
+    </div>
+
+    <p id="explainMsg" class="text-xs sm:text-sm text-on-surface-variant mt-2"></p>
+</form>
+
+<div class="mt-6 sm:mt-8">
+<button id="predictBtn" class="w-full py-4 sm:py-5 rounded-full sun-gradient text-on-primary font-headline font-black text-lg sm:text-xl tracking-tighter sun-glow active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3">
+    <span class="material-symbols-outlined text-2xl">thermostat</span>
+    Predict Temperature
+</button>
+</div>
+</div>
+
+<!-- Result Section -->
+<div class="lg:col-span-4 space-y-6">
+<!-- Predicted Value Card -->
+<div class="glass-panel rounded-xl overflow-hidden border border-primary/10">
+<div class="p-6 sm:p-8 text-center relative">
+    <!-- Sun Icon Background -->
+    <div class="absolute top-4 right-4 opacity-20">
+        <span class="material-symbols-outlined text-6xl text-primary">wb_sunny</span>
+    </div>
+    <p class="text-xs font-label uppercase tracking-[0.2em] text-on-surface-variant mb-4">Predicted Temperature</p>
+    <div class="text-5xl sm:text-6xl font-black font-headline temp-display tracking-tighter mb-2">
+        <span id="predictedValue">--</span>°C
+    </div>
+    <div class="flex justify-center items-center gap-2 text-primary font-body text-sm mt-4">
+        <span class="material-symbols-outlined text-lg">auto_graph</span>
+        LWLR Model
+    </div>
+</div>
+<div class="p-5 bg-surface-container-low/60 border-t border-white/5">
+    <div class="flex items-start gap-4">
+        <span class="material-symbols-outlined text-primary text-xl">lightbulb</span>
+        <div>
+            <h4 class="text-sm font-headline font-bold text-on-surface">About LWLR</h4>
+            <p class="text-xs text-on-surface-variant font-body leading-relaxed mt-1">
+                Locally Weighted Linear Regression gives more weight to nearby data points. Lower bandwidth = more local fit; higher = smoother global fit.
+            </p>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Actual Temperature (shown after random load) -->
+<div id="actualTempCard" class="glass-panel rounded-xl p-5 border border-accent/20 hidden">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-accent text-2xl">verified</span>
+            <div>
+                <p class="text-xs text-on-surface-variant">Actual Temperature</p>
+                <p class="text-2xl font-bold font-headline text-accent"><span id="actualTemp">--</span>°C</p>
+            </div>
+        </div>
+        <div id="errorDisplay" class="text-right">
+            <p class="text-xs text-on-surface-variant">Error</p>
+            <p class="text-lg font-bold font-headline text-accent-warm"><span id="predictionError">--</span>°C</p>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="w-full py-8 sm:py-12 mt-auto bg-[#0f1419] border-t border-white/5">
+<div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 opacity-60 px-4 sm:px-6 md:px-10">
+<p class="font-body text-xs tracking-wide text-on-surface-variant text-center sm:text-left">
+    Delhi Weather (2013-2024) - Locally Weighted Linear Regression Demo
+</p>
+<div class="flex gap-6">
+<a class="font-body text-xs tracking-wide text-on-surface-variant hover:text-primary transition-colors" href="/analytics">View Analytics</a>
+</div>
+</div>
+</footer>
+</main>
+<script src="/statics/app.js"></script>
+</body></html>

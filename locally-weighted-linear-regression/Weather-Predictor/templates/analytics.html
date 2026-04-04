@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Analytics | Delhi Weather LWLR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            colors: {
+                "background": "#0f1419",
+                "surface-container-low": "#161c24",
+                "on-background": "#e0e2eb",
+                "surface-container-highest": "#2d3540",
+                "outline": "#849396",
+                "surface-container": "#1a2230",
+                "surface-container-lowest": "#0a0e14",
+                "primary": "#ffcc4d",
+                "on-surface-variant": "#b8c4cc",
+                "primary-container": "#ff9500",
+                "on-primary": "#1a1000",
+                "surface": "#0f1419",
+                "on-surface": "#e8eaef",
+                "outline-variant": "#3b494c",
+                "surface-variant": "#2d3540",
+                "surface-container-high": "#242c38",
+                "accent": "#4dabf7",
+                "accent-warm": "#ff6b6b"
+            },
+            fontFamily: {
+                "headline": ["Outfit", "sans-serif"],
+                "body": ["Plus Jakarta Sans", "sans-serif"],
+                "label": ["Inter", "sans-serif"]
+            }
+        },
+    },
+}
+</script>
+<link rel="stylesheet" href="/statics/style.css">
+<style>
+    .sun-gradient-text {
+        background: linear-gradient(135deg, #ffcc4d 0%, #ff9500 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .animate-spin { animation: spin 1s linear infinite; }
+    .bandwidth-track {
+        background: linear-gradient(to right, #4dabf7 0%, #ffcc4d 50%, #ff6b6b 100%);
+    }
+    input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 8px;
+        border-radius: 4px;
+        outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ffcc4d;
+        cursor: pointer;
+        border: 3px solid #0f1419;
+        box-shadow: 0 2px 10px rgba(255, 204, 77, 0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ffcc4d;
+        cursor: pointer;
+        border: 3px solid #0f1419;
+    }
+</style>
+</head>
+<body class="bg-background min-h-screen">
+<main class="min-h-screen relative overflow-x-hidden">
+<!-- Header -->
+<header class="fixed top-0 left-0 right-0 z-40 flex justify-between items-center px-4 sm:px-6 md:px-10 h-14 sm:h-16 md:h-20 bg-[#0f1419]/90 backdrop-blur-2xl border-b border-white/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xl text-primary">wb_sunny</span>
+<span class="text-base sm:text-lg md:text-xl font-bold tracking-tight text-primary font-headline">Delhi Weather</span>
+</div>
+<nav class="flex items-center gap-3 sm:gap-4 md:gap-6">
+<a href="/" class="text-xs sm:text-sm font-headline text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 sm:gap-2">
+<span class="material-symbols-outlined text-base sm:text-lg">thermostat</span>
+<span class="hidden sm:inline">Predictor</span>
+</a>
+<a href="/analytics" class="text-xs sm:text-sm font-headline font-bold text-primary flex items-center gap-1 sm:gap-2 border-b-2 border-primary pb-1">
+<span class="material-symbols-outlined text-base sm:text-lg">query_stats</span>
+<span class="hidden sm:inline">Analytics</span>
+</a>
+</nav>
+</header>
+
+<!-- Content -->
+<div class="pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-24 px-3 sm:px-4 md:px-6 lg:px-12 max-w-7xl mx-auto">
+<!-- Title -->
+<div class="mb-6 sm:mb-8 md:mb-10">
+<h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black font-headline tracking-tighter text-on-surface mb-2 sm:mb-3 md:mb-4">
+    LWLR <span class="sun-gradient-text">Analytics</span>
+</h2>
+<p class="text-on-surface-variant font-body text-xs sm:text-sm md:text-base max-w-2xl">
+    Explore how Locally Weighted Linear Regression fits the Delhi weather data. Adjust the bandwidth to see how it affects the prediction curves.
+</p>
+</div>
+
+<!-- Bandwidth Control Panel -->
+<div class="glass-panel rounded-xl p-4 sm:p-6 border border-primary/20 mb-6 sm:mb-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-2xl text-primary">tune</span>
+            <div>
+                <h3 class="text-lg font-headline font-bold text-on-surface">Live Bandwidth Adjuster</h3>
+                <p class="text-xs text-on-surface-variant">See how τ affects the LWLR fit in real-time</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 flex-1 max-w-lg">
+            <span class="text-xs text-accent font-label">Local</span>
+            <input type="range" id="globalBandwidth" min="0.1" max="2.0" step="0.1" value="0.5" 
+                   class="flex-1 bandwidth-track cursor-pointer"/>
+            <span class="text-xs text-accent-warm font-label">Global</span>
+            <span id="bandwidthDisplay" class="text-xl font-bold text-primary font-headline min-w-[4rem] text-right">τ = 0.5</span>
+        </div>
+    </div>
+</div>
+
+<!-- Loading state -->
+<div id="loadingState" class="glass-panel rounded-xl p-6 sm:p-8 text-center">
+<span class="material-symbols-outlined text-3xl sm:text-4xl text-primary animate-spin">refresh</span>
+<p class="text-on-surface-variant mt-3 sm:mt-4 text-sm sm:text-base">Loading analytics data...</p>
+</div>
+
+<!-- Charts Grid -->
+<div id="chartsGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+</div>
+</div>
+
+<!-- Modal -->
+<div id="chartModal" class="fixed inset-0 z-50 hidden">
+<div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
+<div class="absolute inset-2 sm:inset-4 md:inset-8 lg:inset-12 bg-surface-container rounded-xl border border-white/10 flex flex-col overflow-hidden">
+<!-- Modal Header -->
+<div class="flex justify-between items-center p-3 sm:p-4 md:p-6 border-b border-white/5">
+<div>
+<h3 id="modalTitle" class="text-lg sm:text-xl md:text-2xl font-headline font-bold text-on-surface"></h3>
+<p id="modalDesc" class="text-xs sm:text-sm text-on-surface-variant mt-1"></p>
+</div>
+<button onclick="closeModal()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant text-xl sm:text-2xl">close</span>
+</button>
+</div>
+<!-- Modal Bandwidth Control -->
+<div class="px-4 sm:px-6 py-3 bg-surface-container-low border-b border-white/5 flex items-center gap-4">
+    <span class="text-sm text-on-surface-variant">Bandwidth:</span>
+    <input type="range" id="modalBandwidth" min="0.1" max="2.0" step="0.1" value="0.5" 
+           class="flex-1 max-w-xs bandwidth-track cursor-pointer"/>
+    <span id="modalBandwidthValue" class="text-lg font-bold text-primary">τ = 0.5</span>
+</div>
+<!-- Modal Chart -->
+<div class="flex-1 p-3 sm:p-4 md:p-6 min-h-0">
+<canvas id="modalChart"></canvas>
+</div>
+<!-- Modal Footer -->
+<div class="p-3 sm:p-4 md:p-6 border-t border-white/5 flex flex-wrap gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full" style="background: rgba(77, 171, 247, 0.7)"></span>
+<span class="text-on-surface-variant">Actual Temperatures</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full" style="background: rgba(255, 149, 0, 1)"></span>
+<span class="text-on-surface-variant">LWLR Fit Curve</span>
+</div>
+<div id="modalStats" class="text-on-surface-variant ml-auto"></div>
+</div>
+</div>
+</div>
+
+<!-- Footer -->
+<footer class="w-full py-6 sm:py-8 md:py-12 mt-auto bg-[#0f1419] border-t border-white/5">
+<div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 opacity-60 px-3 sm:px-4 md:px-6 lg:px-10">
+<p class="font-body text-[10px] sm:text-xs tracking-wide text-on-surface-variant text-center sm:text-left">
+    Delhi Weather (2013-2024) - Locally Weighted Linear Regression Demo
+</p>
+<a class="font-body text-[10px] sm:text-xs tracking-wide text-on-surface-variant hover:text-primary transition-colors" href="/">Back to Predictor</a>
+</div>
+</footer>
+</main>
+
+<script>
+const featureInfo = {
+    month: { name: 'Month', desc: 'Month of year (1-12)', icon: 'calendar_month' },
+    dayofyear: { name: 'Day of Year', desc: 'Day number in year (1-365)', icon: 'today' },
+    humidity: { name: 'Humidity', desc: 'Relative humidity (%)', icon: 'water_drop' },
+    windspeed: { name: 'Wind Speed', desc: 'Wind speed (km/h)', icon: 'air' },
+    sealevelpressure: { name: 'Pressure', desc: 'Sea level pressure (hPa)', icon: 'speed' }
+};
+
+let analyticsData = null;
+let modalChart = null;
+let currentModalFeature = null;
+let miniCharts = {};
+
+async function fetchAnalytics(bandwidth) {
+    const response = await fetch(`/api/analytics?bandwidth=${bandwidth}`);
+    return await response.json();
+}
+
+function openModal(featId) {
+    currentModalFeature = featId;
+    const modal = document.getElementById('chartModal');
+    const info = featureInfo[featId];
+    const featData = analyticsData.features[featId];
+    
+    document.getElementById('modalTitle').textContent = `${info.name} vs Temperature`;
+    document.getElementById('modalDesc').textContent = info.desc;
+    document.getElementById('modalStats').innerHTML = `<span class="text-primary">Data points:</span> ${featData.values.length}`;
+    
+    // Sync modal bandwidth with global
+    const globalBw = parseFloat(document.getElementById('globalBandwidth').value);
+    document.getElementById('modalBandwidth').value = globalBw;
+    document.getElementById('modalBandwidthValue').textContent = `τ = ${globalBw.toFixed(1)}`;
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    renderModalChart(featId, globalBw);
+}
+
+function renderModalChart(featId, bandwidth) {
+    const info = featureInfo[featId];
+    const featData = analyticsData.features[featId];
+    
+    const ctx = document.getElementById('modalChart').getContext('2d');
+    
+    if (modalChart) {
+        modalChart.destroy();
+    }
+    
+    const scatterData = featData.values.map((x, i) => ({
+        x: x,
+        y: analyticsData.temperatures[i]
+    }));
+    
+    modalChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Data Points',
+                    data: scatterData,
+                    backgroundColor: 'rgba(77, 171, 247, 0.4)',
+                    borderColor: 'rgba(77, 171, 247, 0.7)',
+                    pointRadius: 4,
+                    pointHoverRadius: 7
+                },
+                {
+                    label: 'LWLR Curve',
+                    data: featData.curve.x.map((x, i) => ({ x, y: featData.curve.y[i] })),
+                    type: 'line',
+                    borderColor: 'rgba(255, 149, 0, 1)',
+                    backgroundColor: 'rgba(255, 149, 0, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            interaction: {
+                mode: 'nearest',
+                intersect: false
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    backgroundColor: 'rgba(15, 20, 25, 0.95)',
+                    titleColor: '#ffcc4d',
+                    bodyColor: '#e8eaef',
+                    borderColor: 'rgba(255, 204, 77, 0.3)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        title: () => 'Data Point',
+                        label: (ctx) => [
+                            `${info.name}: ${ctx.parsed.x.toFixed(2)}`,
+                            `Temperature: ${ctx.parsed.y.toFixed(1)}°C`
+                        ]
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: info.name,
+                        color: '#ffcc4d',
+                        font: { size: 14, weight: 'bold' }
+                    },
+                    grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                    ticks: { color: '#b8c4cc', font: { size: 11 } }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Temperature (°C)',
+                        color: '#ffcc4d',
+                        font: { size: 14, weight: 'bold' }
+                    },
+                    grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                    ticks: { color: '#b8c4cc', font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+function closeModal() {
+    document.getElementById('chartModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    currentModalFeature = null;
+    if (modalChart) {
+        modalChart.destroy();
+        modalChart = null;
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+});
+
+async function updateAllCharts(bandwidth) {
+    analyticsData = await fetchAnalytics(bandwidth);
+    
+    for (const [featId, chart] of Object.entries(miniCharts)) {
+        const featData = analyticsData.features[featId];
+        
+        // Update LWLR curve data
+        chart.data.datasets[1].data = featData.curve.x.map((x, i) => ({ 
+            x, y: featData.curve.y[i] 
+        }));
+        chart.update('none');
+    }
+    
+    // Update modal if open
+    if (currentModalFeature && modalChart) {
+        const featData = analyticsData.features[currentModalFeature];
+        modalChart.data.datasets[1].data = featData.curve.x.map((x, i) => ({ 
+            x, y: featData.curve.y[i] 
+        }));
+        modalChart.update();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const globalBandwidthSlider = document.getElementById('globalBandwidth');
+    const bandwidthDisplay = document.getElementById('bandwidthDisplay');
+    const modalBandwidthSlider = document.getElementById('modalBandwidth');
+    const modalBandwidthValue = document.getElementById('modalBandwidthValue');
+    
+    let debounceTimer;
+    
+    // Global bandwidth change
+    globalBandwidthSlider.addEventListener('input', (e) => {
+        const bw = parseFloat(e.target.value);
+        bandwidthDisplay.textContent = `τ = ${bw.toFixed(1)}`;
+        
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => updateAllCharts(bw), 150);
+    });
+    
+    // Modal bandwidth change
+    modalBandwidthSlider.addEventListener('input', async (e) => {
+        const bw = parseFloat(e.target.value);
+        modalBandwidthValue.textContent = `τ = ${bw.toFixed(1)}`;
+        
+        // Also update global slider
+        globalBandwidthSlider.value = bw;
+        bandwidthDisplay.textContent = `τ = ${bw.toFixed(1)}`;
+        
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => updateAllCharts(bw), 150);
+    });
+    
+    try {
+        analyticsData = await fetchAnalytics(0.5);
+        
+        document.getElementById('loadingState').classList.add('hidden');
+        const grid = document.getElementById('chartsGrid');
+        grid.classList.remove('hidden');
+        
+        // Create a chart for each feature
+        for (const [featId, featData] of Object.entries(analyticsData.features)) {
+            const info = featureInfo[featId];
+            
+            const container = document.createElement('div');
+            container.className = 'glass-panel rounded-xl p-3 sm:p-4 md:p-5 border border-white/5 cursor-pointer hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all active:scale-[0.98]';
+            container.onclick = () => openModal(featId);
+            container.innerHTML = `
+                <div class="flex justify-between items-start mb-2 sm:mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-lg">${info.icon}</span>
+                        <div>
+                            <h3 class="text-xs sm:text-sm md:text-base font-headline font-bold text-on-surface">${info.name}</h3>
+                            <p class="text-[9px] sm:text-[10px] md:text-xs text-on-surface-variant line-clamp-1">${info.desc}</p>
+                        </div>
+                    </div>
+                    <span class="material-symbols-outlined text-on-surface-variant text-sm sm:text-base opacity-50">open_in_full</span>
+                </div>
+                <div class="h-32 sm:h-40 md:h-48 pointer-events-none">
+                    <canvas id="chart-${featId}"></canvas>
+                </div>
+                <div class="mt-2 sm:mt-3 text-[9px] sm:text-[10px] md:text-xs text-on-surface-variant flex justify-between">
+                    <span><span class="text-primary">Points:</span> ${featData.values.length}</span>
+                    <span class="text-primary/70">Tap to expand</span>
+                </div>
+            `;
+            grid.appendChild(container);
+            
+            // Create scatter data
+            const scatterData = featData.values.map((x, i) => ({
+                x: x,
+                y: analyticsData.temperatures[i]
+            }));
+            
+            // Create mini chart
+            const ctx = document.getElementById(`chart-${featId}`).getContext('2d');
+            miniCharts[featId] = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Data Points',
+                            data: scatterData,
+                            backgroundColor: 'rgba(77, 171, 247, 0.25)',
+                            borderColor: 'rgba(77, 171, 247, 0.4)',
+                            pointRadius: 1.5,
+                            pointHoverRadius: 1.5
+                        },
+                        {
+                            label: 'LWLR Curve',
+                            data: featData.curve.x.map((x, i) => ({ x, y: featData.curve.y[i] })),
+                            type: 'line',
+                            borderColor: 'rgba(255, 149, 0, 1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 200 },
+                    events: [],
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    }
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load analytics:', err);
+        document.getElementById('loadingState').innerHTML = `
+            <span class="material-symbols-outlined text-3xl sm:text-4xl text-red-500">error</span>
+            <p class="text-on-surface-variant mt-3 sm:mt-4 text-sm sm:text-base">Failed to load analytics data</p>
+        `;
+    }
+});
+</script>
+</body>
+</html>
