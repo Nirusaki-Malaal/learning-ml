@@ -38,6 +38,8 @@ function dayOfYearToMonthDay(dayOfYear) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('App initialized');
+    
     const randomBtn = document.getElementById('randomBtn');
     const predictBtn = document.getElementById('predictBtn');
     const valueDisplay = document.getElementById('predictedValue');
@@ -47,6 +49,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const actualTempCard = document.getElementById('actualTempCard');
     const actualTempDisplay = document.getElementById('actualTemp');
     const errorDisplay = document.getElementById('predictionError');
+    
+    // Debug: Check if elements are found
+    console.log('Elements found:', {
+        randomBtn: !!randomBtn,
+        predictBtn: !!predictBtn,
+        valueDisplay: !!valueDisplay
+    });
 
     // Fetch optimal bandwidth from server
     try {
@@ -107,31 +116,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         randomBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             const icon = randomBtn.querySelector('.material-symbols-outlined');
-            if (icon) icon.classList.add('animate-spin');
+            if (icon) {
+                icon.classList.add('animate-spin');
+            }
+            randomBtn.disabled = true;
             try {
                 const response = await fetch('/random');
                 const data = await response.json();
                 
                 // Fill form fields
-                if (data.month !== undefined) {
-                    document.getElementById('month').value = data.month;
+                const monthSelect = document.getElementById('month');
+                const dayInput = document.getElementById('day');
+                const humidityInput = document.getElementById('humidity');
+                const windspeedInput = document.getElementById('windspeed');
+                const pressureInput = document.getElementById('sealevelpressure');
+                
+                if (data.month !== undefined && monthSelect) {
+                    monthSelect.value = data.month;
                 }
-                if (data.dayofyear !== undefined) {
+                if (data.dayofyear !== undefined && dayInput) {
                     // Convert dayofyear to day of month
                     const { month, day } = dayOfYearToMonthDay(data.dayofyear);
-                    const dayInput = document.getElementById('day');
-                    if (dayInput) {
-                        dayInput.value = day;
-                    }
+                    dayInput.value = day;
                 }
-                if (data.humidity !== undefined) {
-                    document.getElementById('humidity').value = Math.round(data.humidity);
+                if (data.humidity !== undefined && humidityInput) {
+                    humidityInput.value = Math.round(data.humidity);
                 }
-                if (data.windspeed !== undefined) {
-                    document.getElementById('windspeed').value = Math.round(data.windspeed * 10) / 10;
+                if (data.windspeed !== undefined && windspeedInput) {
+                    windspeedInput.value = Math.round(data.windspeed * 10) / 10;
                 }
-                if (data.sealevelpressure !== undefined) {
-                    document.getElementById('sealevelpressure').value = Math.round(data.sealevelpressure);
+                if (data.sealevelpressure !== undefined && pressureInput) {
+                    pressureInput.value = Math.round(data.sealevelpressure);
                 }
                 
                 // Store and show actual temperature
@@ -155,9 +170,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
             } catch (err) {
                 console.error('Failed to load random sample:', err);
+                alert('Failed to load random sample. Please try again.');
             } finally {
                 const icon = randomBtn.querySelector('.material-symbols-outlined');
-                if (icon) icon.classList.remove('animate-spin');
+                if (icon) {
+                    icon.classList.remove('animate-spin');
+                }
+                randomBtn.disabled = false;
             }
         });
     }
@@ -167,16 +186,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         predictBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             
-            const month = parseInt(document.getElementById('month').value) || 5;
-            const day = parseInt(document.getElementById('day').value) || 15;
+            const monthSelect = document.getElementById('month');
+            const dayInput = document.getElementById('day');
+            const humidityInput = document.getElementById('humidity');
+            const windspeedInput = document.getElementById('windspeed');
+            const pressureInput = document.getElementById('sealevelpressure');
+            
+            if (!monthSelect || !dayInput || !humidityInput || !windspeedInput || !pressureInput) {
+                console.error('Required input elements not found');
+                alert('Form elements not found. Please refresh the page.');
+                return;
+            }
+            
+            const month = parseInt(monthSelect.value) || 5;
+            const day = parseInt(dayInput.value) || 15;
             const dayofyear = calculateDayOfYear(month, day);
             
             const payload = {
                 month: month,
                 dayofyear: dayofyear,
-                humidity: parseFloat(document.getElementById('humidity').value) || 45,
-                windspeed: parseFloat(document.getElementById('windspeed').value) || 15,
-                sealevelpressure: parseFloat(document.getElementById('sealevelpressure').value) || 1010,
+                humidity: parseFloat(humidityInput.value) || 45,
+                windspeed: parseFloat(windspeedInput.value) || 15,
+                sealevelpressure: parseFloat(pressureInput.value) || 1010,
                 bandwidth: parseFloat(bandwidthSlider?.value) || optimalBandwidth
             };
 

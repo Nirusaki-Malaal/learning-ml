@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Neural Digit | AI-Powered Digit Recognition</title>
+    <meta name="description" content="Neural Digit uses a Perceptron neural network to recognize handwritten 0 and 1 digits with 99.8% accuracy.">
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/statics/css/style.css">
+</head>
+<body>
+    <!-- Background Orbs (Neural Pulse) -->
+    <div class="orb-container">
+        <div class="neural-glow-orb orb-purple"></div>
+        <div class="neural-glow-orb orb-cyan"></div>
+        <div class="neural-glow-orb orb-pink"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-glass" id="mainNav">
+        <div class="nav-brand">Neural Digit</div>
+        <div class="nav-tabs">
+            <a class="nav-tab active" id="tabPredictor" onclick="switchTab('predictor')">Predictor</a>
+            <a class="nav-tab" id="tabAnalytics" onclick="switchTab('analytics')">Analytics</a>
+        </div>
+        <button class="btn-nav-cta">Get Started</button>
+    </nav>
+
+    <!-- PREDICTOR VIEW -->
+    <main class="main-content" id="predictorView">
+        <div class="hero-layout">
+            <!-- Left Branding -->
+            <div class="hero-left">
+                <span class="label-badge">Ethereal Engine v2.0</span>
+                <h2 class="hero-heading">
+                    Beyond Simple <span class="gradient-text">Logic.</span>
+                </h2>
+                <p class="hero-subtitle">
+                    Experience the precision of Perceptron architecture refined for the digital age. Neural Digit deciphers binary essence with surgical accuracy.
+                </p>
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <span class="stat-value">99.8%</span>
+                        <span class="stat-label">Accuracy</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">0.001</span>
+                        <span class="stat-label">L-Rate</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Predictor Card -->
+            <div class="glass-card-main gradient-border-mask">
+                <div class="card-inner">
+                    <header class="card-header">
+                        <h1 class="card-title gradient-text">Upload & Predict</h1>
+                        <p class="card-subtitle">AI-powered 0 & 1 digit recognition using Perceptron neural network</p>
+                    </header>
+
+                    <!-- Upload Area -->
+                    <div class="upload-wrapper" id="uploadArea">
+                        <div class="upload-glow"></div>
+                        <div class="upload-zone" id="uploadZone">
+                            <input type="file" id="imageInput" accept="image/*" style="display:none">
+                            <div id="previewContainer" style="display:none">
+                                <img id="imagePreview" src="" alt="Preview">
+                            </div>
+                            <div id="uploadContent">
+                                <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+                                <p class="upload-text">
+                                    <span class="upload-bold">Drop your digit image here</span> or <span class="upload-link">click to browse</span>
+                                </p>
+                                <p class="upload-hint">Supported: PNG, JPG (Max 2MB)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Area -->
+                    <div class="action-area">
+                        <button class="btn-analyze" id="predictBtn" disabled>
+                            <span class="material-symbols-outlined">psychology</span>
+                            Analyze Digit
+                        </button>
+
+                        <!-- Result -->
+                        <div class="result-placeholder" id="resultBox">
+                            <span class="result-text" id="resultText">Awaiting neural input...</span>
+                            <div class="result-dots">
+                                <div class="dot dot-purple"></div>
+                                <div class="dot dot-cyan"></div>
+                                <div class="dot dot-pink"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Bar -->
+                    <div class="stats-bar">
+                        <div class="stats-item">
+                            <span class="material-symbols-outlined stats-icon cyan">check_circle</span>
+                            <span class="stats-text">Model Accuracy 99.8%</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="material-symbols-outlined stats-icon purple">speed</span>
+                            <span class="stats-text">Learning Rate 0.001</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="material-symbols-outlined stats-icon pink">refresh</span>
+                            <span class="stats-text">Max Iterations 1000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bento Grid -->
+        <div class="bento-grid">
+            <div class="bento-card bento-large glass-card">
+                <h3 class="bento-title">Real-time Visualization</h3>
+                <p class="bento-text">Watch the weights adjust in real-time as the Perceptron identifies edges, curves, and strokes within the uploaded matrix.</p>
+                <div class="pixel-grid" id="pixelGrid"></div>
+            </div>
+            <div class="bento-card glass-card bento-accent">
+                <span class="material-symbols-outlined bento-icon">auto_awesome</span>
+                <h3 class="bento-title">Smart Inference</h3>
+                <p class="bento-text">The Ethereal Engine optimizes inference speed, providing results in under 12ms.</p>
+                <ul class="bento-list">
+                    <li><span class="material-symbols-outlined">done_all</span> Low Latency</li>
+                    <li><span class="material-symbols-outlined">done_all</span> High Throughput</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- ANALYTICS VIEW -->
+    <main class="main-content analytics-view" id="analyticsView" style="display:none">
+        <header class="analytics-header">
+            <h1 class="analytics-heading">Model Performance <span class="gradient-text-cyan">Insight</span></h1>
+            <p class="analytics-sub">Visualizing neural processing efficiency and training convergence for the Ethereal Engine.</p>
+        </header>
+
+        <!-- ROW 1: Key Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card glass-card" id="metricAccuracy">
+                <span class="metric-label">Model Accuracy</span>
+                <div class="ring-container">
+                    <svg class="progress-ring" viewBox="0 0 96 96">
+                        <circle class="ring-bg" cx="48" cy="48" r="40" fill="transparent" stroke-width="4"></circle>
+                        <circle class="ring-fg" cx="48" cy="48" r="40" fill="transparent" stroke-width="6" id="accuracyRing"></circle>
+                    </svg>
+                    <span class="ring-value" id="accuracyValue">--</span>
+                </div>
+            </div>
+            <div class="metric-card glass-card" id="metricPredictions">
+                <span class="metric-label">Total Predictions</span>
+                <div class="metric-value-row">
+                    <span class="metric-big" id="totalPredictions">0</span>
+                    <span class="metric-trend"><span class="material-symbols-outlined">trending_up</span> Live</span>
+                </div>
+                <div class="sparkline-container" id="sparkline"></div>
+            </div>
+            <div class="metric-card glass-card" id="metricResponse">
+                <div class="metric-top-row">
+                    <span class="metric-label">Avg Response</span>
+                    <span class="material-symbols-outlined metric-icon-accent">bolt</span>
+                </div>
+                <span class="metric-big" id="avgResponse">--</span>
+                <p class="metric-sub">Real-time inference speed</p>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="perfFill"></div>
+                </div>
+            </div>
+            <div class="metric-card glass-card" id="metricEpochs">
+                <span class="metric-label">Training Epochs</span>
+                <span class="metric-big" id="totalEpochs">--</span>
+                <div class="epoch-bar">
+                    <div class="epoch-fill"></div>
+                    <span class="epoch-label">COMPLETE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 2: Charts -->
+        <div class="charts-row">
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">Decision Boundary Visualization</h3>
+                <div class="chart-container">
+                    <canvas id="scatterChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">Prediction Distribution</h3>
+                <div class="chart-container donut-layout">
+                    <canvas id="donutChart"></canvas>
+                    <div class="donut-legend" id="donutLegend"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 3: Loss + Confusion -->
+        <div class="charts-row">
+            <div class="chart-card glass-card">
+                <div class="chart-head">
+                    <h3 class="chart-title">Training Loss Curve</h3>
+                    <span class="live-badge">LIVE FEED</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="lossChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">Confusion Matrix</h3>
+                <div class="confusion-grid" id="confusionMatrix">
+                    <div class="cm-cell cm-tp">
+                        <span class="cm-value" id="cmTP">--</span>
+                        <span class="cm-label">TRUE POSITIVE</span>
+                    </div>
+                    <div class="cm-cell cm-fp">
+                        <span class="cm-value" id="cmFP">--</span>
+                        <span class="cm-label">FALSE POSITIVE</span>
+                    </div>
+                    <div class="cm-cell cm-fn">
+                        <span class="cm-value" id="cmFN">--</span>
+                        <span class="cm-label">FALSE NEGATIVE</span>
+                    </div>
+                    <div class="cm-cell cm-tn">
+                        <span class="cm-value" id="cmTN">--</span>
+                        <span class="cm-label">TRUE NEGATIVE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 4: Weight Distribution -->
+        <div class="full-width-card glass-card">
+            <div class="weight-header">
+                <div>
+                    <h3 class="chart-title">Global Weight Distribution</h3>
+                    <p class="chart-sub">Frequency of normalized weights across 784 feature nodes.</p>
+                </div>
+                <div class="weight-stats" id="weightStats">
+                    <span class="weight-sigma">σ = --</span>
+                    <p class="weight-sub">Standard Deviation</p>
+                </div>
+            </div>
+            <div class="chart-container weight-chart-container">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ROW 5: Architecture + History -->
+        <div class="charts-row">
+            <div class="chart-card glass-card arch-card">
+                <h3 class="chart-title">Neural Architecture</h3>
+                <div class="arch-diagram">
+                    <div class="arch-layer">
+                        <div class="arch-node"></div>
+                        <div class="arch-node active"></div>
+                        <div class="arch-node"></div>
+                        <div class="arch-node"></div>
+                        <p class="arch-label">INPUT (784)</p>
+                    </div>
+                    <svg class="arch-connections" viewBox="0 0 200 160">
+                        <line x1="10" y1="25" x2="90" y2="80" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="10" y1="55" x2="90" y2="80" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="10" y1="95" x2="90" y2="80" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="10" y1="135" x2="90" y2="80" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="110" y1="80" x2="190" y2="55" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="110" y1="80" x2="190" y2="105" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                    </svg>
+                    <div class="arch-layer">
+                        <div class="arch-processor">
+                            <span class="material-symbols-outlined">psychology</span>
+                        </div>
+                        <p class="arch-label arch-label-purple">WEIGHTS + σ</p>
+                    </div>
+                    <div class="arch-layer">
+                        <div class="arch-output active-cyan">0</div>
+                        <div class="arch-output">1</div>
+                        <p class="arch-label">OUTPUT</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">Recent Inferences</h3>
+                <div class="history-table-wrap">
+                    <table class="history-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th># ID</th>
+                                <th>Input</th>
+                                <th>Pred</th>
+                                <th>Conf</th>
+                                <th class="text-right">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <tr>
+                                <td colspan="5" class="empty-history">No predictions yet. Upload an image to start.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-shell">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <span class="footer-logo">Neural Digit</span>
+                <p class="footer-copy">© 2024 Neural Digit. The Ethereal Engine.</p>
+            </div>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/statics/js/main.js"></script>
+</body>
+</html>
