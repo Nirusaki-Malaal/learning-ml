@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Neural Digit | Softmax Regression — All Digits 0-9</title>
+    <meta name="description" content="Neural Digit uses Softmax Regression to recognize all handwritten digits (0-9) from the MNIST dataset with high accuracy.">
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/statics/css/style.css">
+</head>
+<body>
+    <!-- Background Orbs (Neural Pulse) -->
+    <div class="orb-container">
+        <div class="neural-glow-orb orb-purple"></div>
+        <div class="neural-glow-orb orb-cyan"></div>
+        <div class="neural-glow-orb orb-pink"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-glass" id="mainNav">
+        <div class="nav-brand">Neural Digit</div>
+        <div class="nav-tabs">
+            <a class="nav-tab active" id="tabPredictor" onclick="switchTab('predictor')">Predictor</a>
+            <a class="nav-tab" id="tabAnalytics" onclick="switchTab('analytics')">Analytics</a>
+        </div>
+        <button class="btn-nav-cta">Get Started</button>
+    </nav>
+
+    <!-- PREDICTOR VIEW -->
+    <main class="main-content" id="predictorView">
+        <div class="hero-layout">
+            <!-- Left Branding -->
+            <div class="hero-left">
+                <span class="label-badge">Softmax Regression v2.0</span>
+                <h2 class="hero-heading">
+                    Beyond Binary <span class="gradient-text">Logic.</span>
+                </h2>
+                <p class="hero-subtitle">
+                    Experience the precision of Softmax Regression refined for multi-class digit classification. Neural Digit deciphers all 10 digits (0–9) with surgical accuracy.
+                </p>
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <span class="stat-value" id="heroAccuracy">~92%</span>
+                        <span class="stat-label">Accuracy</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">10</span>
+                        <span class="stat-label">Classes</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">784</span>
+                        <span class="stat-label">Features</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Predictor Card -->
+            <div class="glass-card-main gradient-border-mask">
+                <div class="card-inner">
+                    <header class="card-header">
+                        <h1 class="card-title gradient-text">Upload & Predict</h1>
+                        <p class="card-subtitle">AI-powered 0–9 digit recognition using Softmax Regression (Multinomial Logistic)</p>
+                    </header>
+
+                    <!-- Upload Area -->
+                    <div class="upload-wrapper" id="uploadArea">
+                        <div class="upload-glow"></div>
+                        <div class="upload-zone" id="uploadZone">
+                            <input type="file" id="imageInput" accept="image/*" style="display:none">
+                            <div id="previewContainer" style="display:none">
+                                <img id="imagePreview" src="" alt="Preview">
+                            </div>
+                            <div id="uploadContent">
+                                <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+                                <p class="upload-text">
+                                    <span class="upload-bold">Drop your digit image here</span> or <span class="upload-link">click to browse</span>
+                                </p>
+                                <p class="upload-hint">Supported: PNG, JPG (Max 2MB) — Digits 0 through 9</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Area -->
+                    <div class="action-area">
+                        <button class="btn-analyze" id="predictBtn" disabled>
+                            <span class="material-symbols-outlined">psychology</span>
+                            Analyze Digit
+                        </button>
+
+                        <!-- Result -->
+                        <div class="result-placeholder" id="resultBox">
+                            <span class="result-text" id="resultText">Awaiting neural input...</span>
+                            <div class="result-dots">
+                                <div class="dot dot-purple"></div>
+                                <div class="dot dot-cyan"></div>
+                                <div class="dot dot-pink"></div>
+                            </div>
+                        </div>
+
+                        <!-- Per-class confidence bars (hidden until prediction) -->
+                        <div class="confidence-panel" id="confidencePanel" style="display:none">
+                            <h4 class="confidence-heading">Class Probabilities</h4>
+                            <div class="confidence-bars" id="confidenceBars"></div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Bar -->
+                    <div class="stats-bar">
+                        <div class="stats-item">
+                            <span class="material-symbols-outlined stats-icon cyan">check_circle</span>
+                            <span class="stats-text">Softmax Regression</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="material-symbols-outlined stats-icon purple">data_array</span>
+                            <span class="stats-text">10-Class Output</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="material-symbols-outlined stats-icon pink">functions</span>
+                            <span class="stats-text">Cross-Entropy Loss</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bento Grid -->
+        <div class="bento-grid">
+            <div class="bento-card bento-large glass-card">
+                <h3 class="bento-title">Real-time Visualization</h3>
+                <p class="bento-text">Watch the weights adjust as the Softmax classifier identifies edges, curves, and strokes across all 10 digit classes from the 28×28 pixel matrix.</p>
+                <div class="pixel-grid" id="pixelGrid"></div>
+            </div>
+            <div class="bento-card glass-card bento-accent">
+                <span class="material-symbols-outlined bento-icon">auto_awesome</span>
+                <h3 class="bento-title">Multi-Class Inference</h3>
+                <p class="bento-text">Softmax normalizes raw logits into a probability distribution over all 10 digits, enabling confident multi-class predictions.</p>
+                <ul class="bento-list">
+                    <li><span class="material-symbols-outlined">done_all</span> Low Latency</li>
+                    <li><span class="material-symbols-outlined">done_all</span> Probability Distribution</li>
+                    <li><span class="material-symbols-outlined">done_all</span> All Digits 0–9</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- ANALYTICS VIEW -->
+    <main class="main-content analytics-view" id="analyticsView" style="display:none">
+        <header class="analytics-header">
+            <h1 class="analytics-heading">Model Performance <span class="gradient-text-cyan">Insight</span></h1>
+            <p class="analytics-sub">Visualizing Softmax Regression performance, training convergence, and per-class accuracy across all 10 digits.</p>
+        </header>
+
+        <!-- ROW 1: Key Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card glass-card" id="metricAccuracy">
+                <span class="metric-label">Model Accuracy</span>
+                <div class="ring-container">
+                    <svg class="progress-ring" viewBox="0 0 96 96">
+                        <circle class="ring-bg" cx="48" cy="48" r="40" fill="transparent" stroke-width="4"></circle>
+                        <circle class="ring-fg" cx="48" cy="48" r="40" fill="transparent" stroke-width="6" id="accuracyRing"></circle>
+                    </svg>
+                    <span class="ring-value" id="accuracyValue">--</span>
+                </div>
+            </div>
+            <div class="metric-card glass-card" id="metricPredictions">
+                <span class="metric-label">Total Predictions</span>
+                <div class="metric-value-row">
+                    <span class="metric-big" id="totalPredictions">0</span>
+                    <span class="metric-trend"><span class="material-symbols-outlined">trending_up</span> Live</span>
+                </div>
+                <div class="sparkline-container" id="sparkline"></div>
+            </div>
+            <div class="metric-card glass-card" id="metricResponse">
+                <div class="metric-top-row">
+                    <span class="metric-label">Avg Response</span>
+                    <span class="material-symbols-outlined metric-icon-accent">bolt</span>
+                </div>
+                <span class="metric-big" id="avgResponse">--</span>
+                <p class="metric-sub">Real-time inference speed</p>
+                <div class="perf-bar">
+                    <div class="perf-fill" id="perfFill"></div>
+                </div>
+            </div>
+            <div class="metric-card glass-card" id="metricEpochs">
+                <span class="metric-label">Training Epochs</span>
+                <span class="metric-big" id="totalEpochs">--</span>
+                <div class="epoch-bar">
+                    <div class="epoch-fill"></div>
+                    <span class="epoch-label">COMPLETE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 2: Per-Class Accuracy Bar Chart + PCA Scatter -->
+        <div class="charts-row">
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">PCA Embedding (2D Projection)</h3>
+                <div class="chart-container">
+                    <canvas id="scatterChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">Prediction Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="donutChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 3: Loss + Confusion -->
+        <div class="charts-row">
+            <div class="chart-card glass-card">
+                <div class="chart-head">
+                    <h3 class="chart-title">Training Loss Curve</h3>
+                    <span class="live-badge">LIVE FEED</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="lossChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">Per-Class Accuracy</h3>
+                <div class="chart-container">
+                    <canvas id="classAccuracyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 4: 10×10 Confusion Matrix -->
+        <div class="full-width-card glass-card">
+            <h3 class="chart-title">Confusion Matrix (10 × 10)</h3>
+            <p class="chart-sub" style="margin-bottom:1.5rem">True vs predicted class for all digits 0–9. Diagonal = correct predictions.</p>
+            <div class="cm-10x10-container" id="confusionMatrix10"></div>
+        </div>
+
+        <!-- ROW 5: Weight Distribution -->
+        <div class="full-width-card glass-card">
+            <div class="weight-header">
+                <div>
+                    <h3 class="chart-title">Global Weight Distribution</h3>
+                    <p class="chart-sub">Frequency of normalized weights across 10 × 784 parameters.</p>
+                </div>
+                <div class="weight-stats" id="weightStats">
+                    <span class="weight-sigma">σ = --</span>
+                    <p class="weight-sub">Standard Deviation</p>
+                </div>
+            </div>
+            <div class="chart-container weight-chart-container">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ROW 6: Architecture + History -->
+        <div class="charts-row">
+            <div class="chart-card glass-card arch-card">
+                <h3 class="chart-title">Softmax Architecture</h3>
+                <div class="arch-diagram-softmax">
+                    <div class="arch-layer">
+                        <div class="arch-node"></div>
+                        <div class="arch-node active"></div>
+                        <div class="arch-node"></div>
+                        <div class="arch-node"></div>
+                        <p class="arch-label">INPUT (784)</p>
+                    </div>
+                    <div class="arch-middle">
+                        <div class="arch-processor">
+                            <span class="material-symbols-outlined">psychology</span>
+                        </div>
+                        <p class="arch-label arch-label-purple">W · x + b → Softmax(σ)</p>
+                    </div>
+                    <div class="arch-layer arch-output-layer">
+                        <div class="arch-output active-cyan">0</div>
+                        <div class="arch-output">1</div>
+                        <div class="arch-output">2</div>
+                        <div class="arch-output">3</div>
+                        <div class="arch-output">4</div>
+                        <div class="arch-output">5</div>
+                        <div class="arch-output">6</div>
+                        <div class="arch-output">7</div>
+                        <div class="arch-output">8</div>
+                        <div class="arch-output">9</div>
+                        <p class="arch-label">OUTPUT (10)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-card glass-card">
+                <h3 class="chart-title">Recent Inferences</h3>
+                <div class="history-table-wrap">
+                    <table class="history-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th># ID</th>
+                                <th>Pred</th>
+                                <th>Conf</th>
+                                <th class="text-right">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <tr>
+                                <td colspan="4" class="empty-history">No predictions yet. Upload an image to start.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-shell">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <span class="footer-logo">Neural Digit</span>
+                <p class="footer-copy">© 2026 Neural Digit. Softmax Regression Engine.</p>
+            </div>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/statics/js/main.js"></script>
+</body>
+</html>
