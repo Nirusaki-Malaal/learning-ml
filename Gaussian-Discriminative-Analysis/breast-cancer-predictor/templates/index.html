@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breast Cancer GDA Predictor</title>
+    <meta name="description" content="Interactive breast cancer risk classifier using Gaussian Discriminant Analysis on the Wisconsin dataset.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/statics/css/style.css">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/">
+            <span class="brand-mark material-symbols-outlined">biotech</span>
+            <span>GDA Predictor</span>
+        </a>
+        <nav class="main-nav">
+            <button class="nav-tab active" data-target="form-section">
+                <span class="material-symbols-outlined">tune</span>
+                Input Form
+            </button>
+            <button class="nav-tab" data-target="analytics-section">
+                <span class="material-symbols-outlined">analytics</span>
+                Analytics
+            </button>
+        </nav>
+        <div class="topbar-meta">
+            <span id="modelAccuracy">Training accuracy --</span>
+            <span id="datasetRows">Dataset -- rows</span>
+        </div>
+    </header>
+
+    <main class="dashboard-shell">
+        <!-- ═══════════ INPUT FORM SECTION ═══════════ -->
+        <div id="form-section">
+            <section class="section-block hero-section">
+                <div class="hero-grid">
+                    <div class="workspace-copy">
+                        <p class="eyebrow">Gaussian Discriminant Analysis</p>
+                        <h1>Breast Cancer Risk Classifier</h1>
+                        <p class="lede">Adjust nucleus measurements with the sliders below to explore how GDA classifies cell samples in real time.</p>
+                        <div class="hero-actions">
+                            <button id="randomBtn" class="primary-btn" type="button">
+                                <span class="material-symbols-outlined">shuffle</span>
+                                Load Random Sample
+                            </button>
+                            <button id="resetBtn" class="ghost-btn" type="button">
+                                <span class="material-symbols-outlined">restart_alt</span>
+                                Reset to Medians
+                            </button>
+                        </div>
+                    </div>
+                    <aside class="risk-panel" aria-live="polite">
+                        <div class="risk-ring" id="riskRing">
+                            <div>
+                                <span id="riskPercent">--%</span>
+                                <small>malignant probability</small>
+                            </div>
+                        </div>
+                        <div class="risk-copy">
+                            <p id="predictionLabel">Awaiting input</p>
+                            <span id="predictionDetail">Move any slider to run a live GDA prediction.</span>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="section-block">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Prediction Workspace</p>
+                        <h2>Adjust Measurements</h2>
+                    </div>
+                    <span id="sampleLabel" class="status-pill">Median profile</span>
+                </div>
+
+                <div class="tabs" role="tablist" aria-label="Feature groups">
+                    <button class="tab active" data-group="mean" type="button">Mean</button>
+                    <button class="tab" data-group="se" type="button">Std Error</button>
+                    <button class="tab" data-group="worst" type="button">Worst</button>
+                </div>
+
+                <div id="featureControls" class="feature-controls"></div>
+
+                <div class="info-sneak">
+                    <span class="material-symbols-outlined">info</span>
+                    <div>
+                        <h3 id="infoTitle">Feature Info</h3>
+                        <p id="infoDescription">Focus a measurement to see what it captures.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ═══════════ ANALYTICS SECTION ═══════════ -->
+        <div id="analytics-section" style="display: none;">
+
+            <!-- Row 1: Model Performance Summary -->
+            <section class="section-block">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Model Performance</p>
+                        <h2>Training Metrics</h2>
+                    </div>
+                </div>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <span class="stat-icon material-symbols-outlined">target</span>
+                        <div class="stat-value" id="statAccuracy">--</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon material-symbols-outlined">precision_manufacturing</span>
+                        <div class="stat-value" id="statPrecision">--</div>
+                        <div class="stat-label">Precision</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon material-symbols-outlined">radar</span>
+                        <div class="stat-value" id="statRecall">--</div>
+                        <div class="stat-label">Recall</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon material-symbols-outlined">speed</span>
+                        <div class="stat-value" id="statF1">--</div>
+                        <div class="stat-label">F1 Score</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Row 2: Decision Surface with Elliptical Contours -->
+            <section class="section-block">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Live Visualization</p>
+                        <h2>Decision Surface & Gaussian Contours</h2>
+                    </div>
+                    <div class="axis-controls">
+                        <label>
+                            X Axis
+                            <select id="xFeature"></select>
+                        </label>
+                        <label>
+                            Y Axis
+                            <select id="yFeature"></select>
+                        </label>
+                    </div>
+                </div>
+                <div class="chart-wrap tall">
+                    <canvas id="decisionChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Row 3: Distribution + Separation side-by-side -->
+            <div class="analytics-row">
+                <section class="section-block">
+                    <div class="panel-heading inline">
+                        <div>
+                            <p class="eyebrow">Distribution</p>
+                            <h2 id="distributionTitle">Selected Feature</h2>
+                        </div>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="section-block">
+                    <div class="panel-heading inline">
+                        <div>
+                            <p class="eyebrow">Class Separation</p>
+                            <h2>Top Discriminative Features</h2>
+                        </div>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="separationChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Row 4: Confusion Matrix + Correlation Heatmap -->
+            <div class="analytics-row">
+                <section class="section-block">
+                    <div class="panel-heading inline">
+                        <div>
+                            <p class="eyebrow">Classification</p>
+                            <h2>Confusion Matrix</h2>
+                        </div>
+                    </div>
+                    <div class="confusion-grid" id="confusionGrid">
+                        <div class="conf-corner"></div>
+                        <div class="conf-header">Predicted Benign</div>
+                        <div class="conf-header">Predicted Malignant</div>
+                        <div class="conf-row-header">Actual Benign</div>
+                        <div class="conf-cell tn" id="confTN">--</div>
+                        <div class="conf-cell fp" id="confFP">--</div>
+                        <div class="conf-row-header">Actual Malignant</div>
+                        <div class="conf-cell fn" id="confFN">--</div>
+                        <div class="conf-cell tp" id="confTP">--</div>
+                    </div>
+                </section>
+
+                <section class="section-block">
+                    <div class="panel-heading inline">
+                        <div>
+                            <p class="eyebrow">Feature Relationships</p>
+                            <h2>Correlation Heatmap</h2>
+                        </div>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="correlationChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Row 5: Class Comparison Table -->
+            <section class="section-block">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Class Comparison</p>
+                        <h2>Feature Statistics by Diagnosis</h2>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="stats-table" id="classStatsTable">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Benign (μ ± σ)</th>
+                                <th>Malignant (μ ± σ)</th>
+                                <th>Δ%</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Fullscreen Chart Modal -->
+    <div class="chart-modal-overlay" id="chartModal">
+        <div class="chart-modal">
+            <div class="chart-modal-header">
+                <h2 id="chartModalTitle">Chart</h2>
+                <button class="modal-close-btn" id="chartModalClose" type="button">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="chart-modal-body">
+                <canvas id="chartModalCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="/statics/js/main.js"></script>
+</body>
+</html>
